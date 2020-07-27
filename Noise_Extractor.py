@@ -67,69 +67,110 @@ print("Autocorrelation: " + str(autocorrelation))
 
 ### Window function ###
 window_width = 2048
-stepsize = 2048
-if window_width != stepsize:
-	raise ValueError("De functie werkt alleen (nog) als deze twee hetzelfde zijn")
+stepsize = 512
+# Calculate the frames. Skips the data at the end of the last frame does not fit perfectly.
+nr_of_frames = (len(y) - window_width + stepsize) // stepsize
+# if window_width != stepsize:
+# 	raise ValueError("De functie werkt alleen (nog) als deze twee hetzelfde zijn")
 # Hamming window has proven to be the best window for birdsounds from the papers I (Matthijs) have read
 window = hamming(window_width)
 
 ##############################
 
-# Calculate the frames. Skips the data at the end of the last frame does not fit perfectly.
-nr_of_frames = (len(y) - window_width + stepsize) // stepsize
-frames = np.array([y[stepsize*n:stepsize*n+window_width] for n in range(nr_of_frames)])
-
-# Initiate the necessary lists where we want to store our features
-energies = []
-zero_crossing_rates = []
-
-# For every frame, compute the features of the frame
-for frame in frames:
+def get_frames(samples):
 	
-	# Caculate the newly windowed frame
-	new_frame = frame * window
+	frames = np.array([samples[stepsize*n:stepsize*n+window_width] for n in range(nr_of_frames)])
 	
-	# Calculate the energy for the newly windowed frame
-	window_energy = np.sum(new_frame**2)
-	
-	# Calculate the zero crossing rate for the newly windowed frame
-	zcr = np.sum(librosa.core.zero_crossings(new_frame))/window_width
-	
-	# Append the features that we want
-	energies.append(window_energy)
-	zero_crossing_rates.append(zcr)
+	return frames
 
-# Get the mean energy of the signal
-mean_energy = np.mean(energies)
+def window_function_transform(frames):
+	
+	new_frames = []
+	
+	# For every frame transofrm the samples according to the window function
+	for frame in frames:
+		
+		# Caculate the newly windowed frame
+		new_frame = frame * window
+		
+		new_frames.append(new_frame)
+	
+	return new_frames
 
-# Initiate lists for storing non_birdcall and birdcall sounds
-noisy_frames = []
-birdcall_frames = []
+def get_statistcal_features(frames):
+	
+	# Initiate the necessary lists where we want to store our features
+	energies = []
+	zero_crossing_rates = []
+	
+	# For every frame, compute the features of the frame
+	for frame in frames:
+		
+		# Calculate the energy for the newly windowed frame
+		window_energy = np.sum(frame**2)
+	
+		# Calculate the zero crossing rate for the newly windowed frame
+		zcr = np.sum(librosa.core.zero_crossings(frame))/window_width
+		
+		# Append the features that we want
+		energies.append(window_energy)
+		zero_crossing_rates.append(zcr)
+	
+	return energies, zero_crossing_rates
+
+frames = window_function_transform( get_frames( y ) )
+
+def sine_distance(frame):
+	
+	fft_frame = np.fft.fft(frame, n=200000)
+	fft_freqs = np.abs(np.fft.fftfreq(len(fft_frame), d=1/sr))
+	
+	plt.plot(fft_freqs, fft_frame)
+
+sine_distance(frames[20])
+
+# energies, zero_crossing_rates = get_statistcal_features( frames )
+
+"""
 
 ################
 # We will have to think of a better heuristic than just the energy of a signal
 # Possible other candidates: zero_crossing_rate, spectral
 ################
-for index, energy in enumerate(energies):
+
+def divide_noise_non_noise(energies):
 	
-	coeff = 0.05
+	# Get the mean energy of the signal
+	mean_energy = np.mean(energies)
 	
-	############ 
-	# AUTOMATISEREN van de coefficient. 
-	# Ik zit te denken aan de coefficient afleiden van autocorrelatie. 
-	# Die twee lijken elkaar te beïnvloeden.
-	# De optimale coefficienten tussen files kunnen verschillen van 0.02 tot 0.3 ofzo
-	# Ik vermoed dat het te maken heeft met de Signal-to-Noise-Ratio (SNR)
-	# Ik bepaal hem nu elke keer met manual, door te luisteren naar de "noisy_frames"
-	################
-	if energy < coeff * mean_energy:
+	# Initiate lists for storing non_birdcall and birdcall sounds
+	noisy_frames = []
+	non_noisy_frames = []
+	
+	for index, energy in enumerate(energies):
 		
-		#Add the pure noisy frames to the appropriate list
-		noisy_frames.extend(frames[index])
+		coeff = 0.05
+		
+		###############
+		# AUTOMATISEREN van de coefficient. 
+		# Ik zit te denken aan de coefficient afleiden van autocorrelatie. 
+		# Die twee lijken elkaar te beïnvloeden.
+		# De optimale coefficienten tussen files kunnen verschillen van 0.02 tot 0.3 ofzo
+		# Ik vermoed dat het te maken heeft met de Signal-to-Noise-Ratio (SNR)
+		# Ik bepaal hem nu elke keer met manual, door te luisteren naar de "noisy_frames"
+		################
+		if energy < coeff * mean_energy:
+			
+			#Add the pure noisy frames to the appropriate list
+			noisy_frames.extend(frames[index][:stepsize])
+		
+		else:
+			#Add the non-noise frames to the appropriate list
+			non_noisy_frames.extend(frames[index])
 	
-	else:
-		#Add the non-noise frames to the appropriate list
-		birdcall_frames.extend(frames[index])
+	return noisy_frames, non_noisy_frames
+
+noisy_frames, non_noisy_frames = divide_noise_non_noise(energies)
 
 #############
 # Dit stuk met de fourier transforms gebruik ik om de noisy en non noisy frames
@@ -138,10 +179,10 @@ for index, energy in enumerate(energies):
 # om pure noise van non pure noise te scheiden.
 #############
 print(autocorr(noisy_frames)[0,1])
-print(autocorr(birdcall_frames)[0,1])
+print(autocorr(non_noisy_frames)[0,1])
 
 fft_samples_noise = np.fft.fft(noisy_frames, n=200000)
-fft_samples_birds = np.fft.fft(birdcall_frames, n=200000)
+fft_samples_birds = np.fft.fft(non_noisy_frames, n=200000)
 
 print(np.corrcoef(fft_samples_noise, fft_samples_birds).real[0,1])
 
@@ -149,6 +190,7 @@ frequencies_noise = np.abs(np.fft.fftfreq(len(fft_samples_noise), d=1/sr))
 frequencies_birds = np.abs(np.fft.fftfreq(len(fft_samples_birds), d=1/sr))
 
 if plotting == True:
+	
 	### Plotting stuff ###
 	t_soundwave = np.linspace(0, len(y)/sr, len(y))
 	t_windowed_features = np.linspace(0, len(y)/sr, nr_of_frames)
@@ -180,3 +222,4 @@ if plotting == True:
 # Uncomment deze regel als je de noisy frames wil horen afspelen
 # sd.play(noisy_frames, sr)
 
+"""
