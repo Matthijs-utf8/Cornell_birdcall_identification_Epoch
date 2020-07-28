@@ -49,11 +49,6 @@ def autocorr(x, t=1):
 	return np.corrcoef(np.array([x[:-t], x[t:]]))
 
 # Add the path of each file to the train.csv
-with open(".config") as config_file:
-	config_lines = config_file.readlines()
-	split = (line.split("=", 1) for line in config_lines)
-	base_dir = next(value for key, value in split if key == "data_folder") + "/"
-
 
 # base_dir = os.path.join(os.path.expanduser("~"), "Downloads/birdsong-recognition/")
 df_train = pd.read_csv(base_dir + "train.csv")
@@ -129,67 +124,6 @@ def get_statistcal_features(frames):
 	return energies, zero_crossing_rates
 
 frames = window_function_transform( get_frames( y ) )
-
-def apply_sine_distance(frame):
-	# Create frame for Fast Fourier Transform
-	frame_size = frame.shape[0]
-	fft_hamming_window = scipy.signal.hamming(frame_size)
-
-	# Compute Fast Fourier Transform
-	signal = np.fft.fft(
-		frame * fft_hamming_window
-	)
-
-	# Calculate sine distance for different frequencies	
-	radius = 128
-	step_size = 128
-	sine_distance_window = scipy.signal.hamming(radius * 2 + 1)	
-
-	filtering = np.array([
-		sine_distance(signal, sine_distance_window, center, radius)
-		for center in range(radius, signal.shape[0] - radius)
-	])
-
-	filtering = np.pad(filtering, (radius,radius), 'constant', constant_values=(0, 0))
-
-	filtered_signal = signal * filtering
-
-	return np.fft.ifft(filtered_signal).astype('float')
-
-def sine_distance(signal, window, center, radius):
-	total_squared_distance = 0
-	
-	window_center = radius
-
-	# Add each squared distance to the total
-	for i in range(-radius, radius + 1):
-		normalised_signal = (signal[center + i] / signal[center]).real
-		normalised_window = window[i + window_center] / window[window_center]
-		total_squared_distance += (normalised_signal - normalised_window) ** 2
-	
-	# Return the square-root of the average
-	return math.sqrt(total_squared_distance / (2 * radius + 1))
-
-if True:
-	start_sine_distance = time.time()
-
-	filtered = np.array([
-		apply_sine_distance(frames[i])
-		for i in range(50)
-	]).flatten()
-
-	print(time.time() - start_sine_distance)
-
-	# Play normal
-	for _ in range(10):
-		print('normal')
-		sd.play(np.array(frames[:50]).flatten(), sr)
-		sd.wait()
-
-		print('filtered')
-		# Play edited
-		sd.play(filtered.flatten(), sr)
-		sd.wait()
 
 energies, zero_crossing_rates = get_statistcal_features( frames )
 
