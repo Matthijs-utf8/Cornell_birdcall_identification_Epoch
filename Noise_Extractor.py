@@ -30,8 +30,11 @@ from librosa.feature import zero_crossing_rate, spectral_centroid, spectral_roll
 from librosa.onset import onset_detect, onset_backtrack, onset_strength
 import sklearn
 import warnings
+import scipy
+from scipy import fftpack
 from scipy.signal.windows import hamming
 import sounddevice as sd
+import math
 
 # A function that prevents warnings when loading in files with librosa
 warnings.simplefilter("ignore")
@@ -45,7 +48,13 @@ def autocorr(x, t=1):
 	return np.corrcoef(np.array([x[:-t], x[t:]]))
 
 # Add the path of each file to the train.csv
-base_dir = os.path.join(os.path.expanduser("~"), "Downloads/birdsong-recognition/")
+with open(".config") as config_file:
+	config_lines = config_file.readlines()
+	split = (line.split("=", 1) for line in config_lines)
+	base_dir = next(value for key, value in split if key == "data_folder") + "/"
+
+
+# base_dir = os.path.join(os.path.expanduser("~"), "Downloads/birdsong-recognition/")
 df_train = pd.read_csv(base_dir + "train.csv")
 
 ####### !!!!!!!!!!!!!!! ##########
@@ -120,14 +129,41 @@ def get_statistcal_features(frames):
 
 frames = window_function_transform( get_frames( y ) )
 
-def sine_distance(frame):
-	
-	fft_frame = np.fft.fft(frame, n=200000)
-	fft_freqs = np.abs(np.fft.fftfreq(len(fft_frame), d=1/sr))
-	
-	plt.plot(fft_freqs, fft_frame)
+def apply_sine_distance(frame):
+	# Create frame for Fast Fourier Transform
+	frame_size = frame.shape[0]
+	fft_hamming_window = scipy.signal.hamming(frame_size)
 
-sine_distance(frames[20])
+	# Compute Fast Fourier Transform
+	signal = fftpack.fft(
+		frame * fft_hamming_window
+	)
+
+	# Calculate sine distance for different frequencies	
+	radius = 3
+	step_size = 3
+	sine_distance_window = scipy.signal.hamming(radius * 2 + 1)	
+
+	return [
+		sine_distance(signal, sine_distance_window, center, radius)
+		for center in range(radius, signal.dim[0] - radius)
+	]
+
+def sine_distance(signal, window, center, radius):
+	total_squared_distance = 0
+	
+	window_center = radius
+
+	# Add each squared distance to the total
+	for i in range(-radius, radius + 1):
+		normalised_signal = signal[center + i] / signal[center]
+		normalised_window = window[i + window_center] / window[window_center]
+		total_squared_distance += (normalised_signal - normalised_window) ** 2
+
+	# Return the square-root of the average
+	return math.sqrt(total_squared_distance / (2 * radius + 1))
+
+apply_sine_distance(frames[20])
 
 # energies, zero_crossing_rates = get_statistcal_features( frames )
 
