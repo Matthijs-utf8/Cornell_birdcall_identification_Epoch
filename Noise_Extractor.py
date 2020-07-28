@@ -183,12 +183,12 @@ if True:
 	# Play normal
 	for _ in range(10):
 		print('normal')
-		sd.play(np.array(frames[:50]).flatten())
+		sd.play(np.array(frames[:50]).flatten(), sr)
 		sd.wait()
 
 		print('filtered')
 		# Play edited
-		sd.play(filtered.flatten())
+		sd.play(filtered.flatten(), sr)
 		sd.wait()
 
 energies, zero_crossing_rates = get_statistcal_features( frames )
