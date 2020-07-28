@@ -40,6 +40,12 @@ import time
 # A function that prevents warnings when loading in files with librosa
 warnings.simplefilter("ignore")
 
+with open(".config") as config_file:
+	config_lines = config_file.readlines()
+	split = (line.split("=", 1) for line in config_lines)
+	base_dir = next(value for key, value in split if key == "data_folder") + "/"
+
+
 # A helper function for normalizing signals. It helps with viualisation to get everything on the same scale.
 def normalize(x, axis=0):
 	return sklearn.preprocessing.minmax_scale(x, axis=axis)
