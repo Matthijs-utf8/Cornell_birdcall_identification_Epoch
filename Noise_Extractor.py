@@ -35,6 +35,7 @@ from scipy import fftpack
 from scipy.signal.windows import hamming
 import sounddevice as sd
 import math
+import time
 
 # A function that prevents warnings when loading in files with librosa
 warnings.simplefilter("ignore")
@@ -64,7 +65,7 @@ df_train = pd.read_csv(base_dir + "train.csv")
 
 ###### Hyper parameters ######
 
-plotting = True
+plotting = False
 
 ### Data ###
 y, sr = librosa.load(df_train['full_path'][3])
@@ -135,19 +136,25 @@ def apply_sine_distance(frame):
 	fft_hamming_window = scipy.signal.hamming(frame_size)
 
 	# Compute Fast Fourier Transform
-	signal = fftpack.fft(
+	signal = np.fft.fft(
 		frame * fft_hamming_window
 	)
 
 	# Calculate sine distance for different frequencies	
-	radius = 3
-	step_size = 3
+	radius = 128
+	step_size = 128
 	sine_distance_window = scipy.signal.hamming(radius * 2 + 1)	
 
-	return [
+	filtering = np.array([
 		sine_distance(signal, sine_distance_window, center, radius)
-		for center in range(radius, signal.dim[0] - radius)
-	]
+		for center in range(radius, signal.shape[0] - radius)
+	])
+
+	filtering = np.pad(filtering, (radius,radius), 'constant', constant_values=(0, 0))
+
+	filtered_signal = signal * filtering
+
+	return np.fft.ifft(filtered_signal).astype('float')
 
 def sine_distance(signal, window, center, radius):
 	total_squared_distance = 0
@@ -156,18 +163,35 @@ def sine_distance(signal, window, center, radius):
 
 	# Add each squared distance to the total
 	for i in range(-radius, radius + 1):
-		normalised_signal = signal[center + i] / signal[center]
+		normalised_signal = (signal[center + i] / signal[center]).real
 		normalised_window = window[i + window_center] / window[window_center]
 		total_squared_distance += (normalised_signal - normalised_window) ** 2
-
+	
 	# Return the square-root of the average
 	return math.sqrt(total_squared_distance / (2 * radius + 1))
 
-apply_sine_distance(frames[20])
+if True:
+	start_sine_distance = time.time()
 
-# energies, zero_crossing_rates = get_statistcal_features( frames )
+	filtered = np.array([
+		apply_sine_distance(frames[i])
+		for i in range(50)
+	]).flatten()
 
-"""
+	print(time.time() - start_sine_distance)
+
+	# Play normal
+	for _ in range(10):
+		print('normal')
+		sd.play(np.array(frames[:50]).flatten())
+		sd.wait()
+
+		print('filtered')
+		# Play edited
+		sd.play(filtered.flatten())
+		sd.wait()
+
+energies, zero_crossing_rates = get_statistcal_features( frames )
 
 ################
 # We will have to think of a better heuristic than just the energy of a signal
@@ -225,8 +249,7 @@ print(np.corrcoef(fft_samples_noise, fft_samples_birds).real[0,1])
 frequencies_noise = np.abs(np.fft.fftfreq(len(fft_samples_noise), d=1/sr))
 frequencies_birds = np.abs(np.fft.fftfreq(len(fft_samples_birds), d=1/sr))
 
-if plotting == True:
-	
+if plotting:
 	### Plotting stuff ###
 	t_soundwave = np.linspace(0, len(y)/sr, len(y))
 	t_windowed_features = np.linspace(0, len(y)/sr, nr_of_frames)
@@ -255,7 +278,11 @@ if plotting == True:
 	plt.plot(frequencies_birds, fft_samples_birds)
 	plt.show()
 
-# Uncomment deze regel als je de noisy frames wil horen afspelen
-# sd.play(noisy_frames, sr)
+# A test that shows we can generate a spectrogram and convert it back to the orignal sound
+if False:
+	spectrogram = np.fft.fft(non_noisy_frames)
+	converted_back = np.fft.ifft(spectrogram).astype('float')
 
-"""
+	sd.play(converted_back, sr)
+
+	sd.wait()
