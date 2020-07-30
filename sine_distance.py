@@ -70,14 +70,14 @@ if __name__ == "__main__":
     print(time.time() - start_sine_distance)
 
     for _ in range(10):
+        # Play edited
         print('filtered')
+        sounddevice.play(filtered.flatten(), sr)
+        sounddevice.wait()
+        
         # Play normal
         print('normal')
         sounddevice.play(np.array(frames[:test_frame_length]).flatten(), sr)
-        sounddevice.wait()
-
-        # Play edited
-        sounddevice.play(filtered.flatten(), sr)
         sounddevice.wait()
         
  
