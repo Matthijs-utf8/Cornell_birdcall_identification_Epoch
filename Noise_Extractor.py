@@ -13,7 +13,11 @@ import librosa
 import sklearn
 import warnings
 import sounddevice as sd
+<<<<<<< HEAD
 import data_reading
+=======
+import noisereduce as nr
+>>>>>>> 9fd61b21ca2e49809e8a6920a3b591862a7172b7
 
 # A function that prevents warnings when loading in files with librosa
 warnings.simplefilter("ignore")
@@ -78,12 +82,9 @@ def compute_energy_coefficient(samples, base_coefficient=1):
 	return SNR, energy_coefficient
 
 """ The function that bring it all together. """
-def get_noise_frames(fullpath, window_width=2048, stepsize=512, plotting=False):
+def get_noise_frames(samples, sampling_rate, window_width=2048, stepsize=512, verbose=False):
 	
 	""" Preparation for separating pure noise from non-pure noise. """
-	
-	# Read in the audiofile with librosa.
-	samples, sampling_rate = librosa.load(fullpath)
 	
 	# Separate the samples in frames according to the window_width and stepsize
 	nr_of_frames, frames = get_frames(samples, window_width=window_width, stepsize=stepsize)
@@ -97,8 +98,8 @@ def get_noise_frames(fullpath, window_width=2048, stepsize=512, plotting=False):
 	# Get the energy coefficient that we need for separating pure noise from non-pure noise.
 	SNR, energy_coefficient = compute_energy_coefficient(samples, base_coefficient=2)
 	
-	print("Energy coefficient: " + str(energy_coefficient))
-	print("Signal-to-Noise: " + str(SNR))
+	print("Energy coefficient: " + str(round(energy_coefficient, 3) ) )
+	print("Signal-to-Noise: " + str(round(SNR, 3)))
 	
 	""" Separating pure noise from non-pure noise. """
 	
@@ -116,17 +117,18 @@ def get_noise_frames(fullpath, window_width=2048, stepsize=512, plotting=False):
 			# Add the pure noisy parts to the appropriate list
 			noisy_frames.extend(frames[index][int((window_width-stepsize)/2):int((window_width+stepsize)/2)])
 			noisy_energy.append(energy)
+		
 		else:
 			# Add the non-noise frames to the appropriate list
 			non_noisy_frames.extend(frames[index][int((window_width-stepsize)/2):int((window_width+stepsize)/2)])
 			non_noisy_energy.append(energy)
 	
 	# A measure for how well the noise is predictable (higher is better). The better predictable it is, the better a spectral noise gate will work
-	print("Noise predictability: " + str(autocorr(noisy_frames)[0,1]/autocorr(non_noisy_frames)[0,1]))
+	print("Noise predictability: " + str(round(autocorr(noisy_frames)[0,1] / autocorr(non_noisy_frames)[0,1], 3) ) )
 	
 	""" Plotting """
 	
-	if plotting == True:
+	if verbose == True:
 		
 		# Initiate time domain axes for some different graphs
 		t_soundwave = np.linspace(0, len(samples)/sampling_rate, len(samples))
@@ -137,32 +139,61 @@ def get_noise_frames(fullpath, window_width=2048, stepsize=512, plotting=False):
 		t_windowed_features_noisy = np.linspace(0, len(noisy_frames)/sampling_rate, len(noisy_energy))
 		t_windowed_features_non_noisy = np.linspace(0, len(non_noisy_frames)/sampling_rate, len(non_noisy_energy))
 		
-		#Plot the signal versus the signal energy
+		# Plot the signal versus the signal energy
 		plt.figure(figsize=(20,12))
 		plt.title("Energy whole signal")
 		plt.plot(t_soundwave, normalize(samples), alpha=0.5)
 		plt.plot(t_windowed_features, normalize(energies))
 		plt.show()
 		
-		#Plot the signal versus the signal energy
+		# Plot the signal versus the signal energy
 		plt.figure(figsize=(20,12))
 		plt.title("Energy pure noise signal")
 		plt.plot(t_soundwave_noisy, normalize(noisy_frames), alpha=0.5)
-		plt.plot(t_windowed_features_noisy, normalize(noisy_energy))
+		plt.plot(t_windowed_features_noisy, normalize(noisy_energy) )
 		plt.show()
 		
-		#Plot the signal versus the signal energy
+		# Plot the signal versus the signal energy
 		plt.figure(figsize=(20,12))
 		plt.title("Energy non pure noise signal")
 		plt.plot(t_soundwave_non_noisy, normalize(non_noisy_frames), alpha=0.5)
 		plt.plot(t_windowed_features_non_noisy, normalize(non_noisy_energy))
 		plt.show()
+	
+	return np.array(noisy_frames)
+
+def filter_sound(fullpath, verbose=False):
+	
+	# Read in the audiofile with librosa.
+	samples, sampling_rate = librosa.load(fullpath)
+	
+	noise = get_noise_frames(samples=samples, sampling_rate=sampling_rate, verbose=verbose)
+	
+	reduced_noise = nr.reduce_noise(audio_clip=samples, noise_clip=noise, verbose=verbose)
+	
+	if verbose == True:
 		
+		print("Playing original samples")
+		sd.play(samples, sampling_rate)
+		sd.wait()
+		
+<<<<<<< HEAD
 	#Uncomment this when you want to play the noisy or non noisy sounds at the end
 	sd.play(non_noisy_frames, sampling_rate)
 	sd.wait()
+=======
+		print("PLaying noise")
+		sd.play(noise, sampling_rate)
+		sd.wait()
+>>>>>>> 9fd61b21ca2e49809e8a6920a3b591862a7172b7
 		
-	return noisy_frames, non_noisy_frames
+		print("Playing reduced noise samples")
+		sd.play(reduced_noise, sampling_rate)
+		sd.wait()
 
 if __name__ == "__main__":
+<<<<<<< HEAD
 	get_noise_frames(df_train['full_path'][4080], plotting=False)
+=======
+	filter_sound(df_train['full_path'][2], verbose=True)
+>>>>>>> 9fd61b21ca2e49809e8a6920a3b591862a7172b7
