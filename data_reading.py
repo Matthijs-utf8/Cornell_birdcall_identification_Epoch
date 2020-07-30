@@ -4,6 +4,7 @@ import numpy as np
 import sounddevice
 import os
 
+# Read the config file or create it if it doesn't exist yet
 def read_config():
     if not os.path.isfile('.config'):
         print("Where is the kaggle competition folder located?")
@@ -19,9 +20,11 @@ def read_config():
 
 test_data_base_dir = read_config()
 
+# Read train.csv from the kaggle directory into a pandas dataframe
 def get_csv():
     return pandas.read_csv(test_data_base_dir + "train.csv")
 
+# Returns the n'th audio fragment
 def get_frames_from_index(index, csv):
     full_path = test_data_base_dir + "train_audio/" + csv['ebird_code'][index] + '/' + csv['filename'][index]
     return get_frames(full_path)
@@ -33,7 +36,7 @@ def default_test_frames():
 
     return get_frames(full_path)
 
-
+# Returns the audio fragment located at file_path
 def get_frames(file_path):
     window_width = 2048
     stepsize = window_width
@@ -47,8 +50,3 @@ def get_frames(file_path):
     ])
 
     return frames, sample_rate
-
-if __name__ == "__main__":
-    frames, sample_rate = default_test_frames()
-    sounddevice.play(frames.flatten(), sample_rate)
-    sounddevice.wait()
