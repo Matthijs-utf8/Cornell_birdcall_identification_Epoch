@@ -13,6 +13,7 @@ import librosa
 import sklearn
 import warnings
 import sounddevice as sd
+import data_reading
 
 # A function that prevents warnings when loading in files with librosa
 warnings.simplefilter("ignore")
@@ -26,7 +27,7 @@ def autocorr(x, t=1):
 	return np.corrcoef(np.array([x[:-t], x[t:]]))
 
 # Add the path of each file to the train.csv
-base_dir = os.path.join(os.path.expanduser("~"), "Downloads/birdsong-recognition/")
+base_dir = data_reading.read_config() #os.path.join(os.path.expanduser("~"), "Downloads/birdsong-recognition/")
 df_train = pd.read_csv(base_dir + "train.csv")
 
 ####### !!!!!!!!!!!!!!! ##########
@@ -159,8 +160,9 @@ def get_noise_frames(fullpath, window_width=2048, stepsize=512, plotting=False):
 		
 	#Uncomment this when you want to play the noisy or non noisy sounds at the end
 	sd.play(non_noisy_frames, sampling_rate)
+	sd.wait()
 		
 	return noisy_frames, non_noisy_frames
 
 if __name__ == "__main__":
-	get_noise_frames(df_train['full_path'][4080], plotting=True)
+	get_noise_frames(df_train['full_path'][4080], plotting=False)

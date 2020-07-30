@@ -28,18 +28,19 @@ def apply_sine_distance(frame):
         for center in range(radius, signal.shape[0] - radius)
     ])
 
-    filtering = np.pad(filtering, (radius,radius), 'constant', constant_values=(0, 0))
+    filtering = np.pad(filtering, (radius, radius), 'constant', constant_values=(0, 0))
     avg = np.average(filtering)
-    filtering = (filtering > avg).astype('int')
+    filtering = (filtering > avg).astype('float')
 
-    filtered_signal = signal * filtering # signal.real + (signal.imag * filtering) * 1j
+    filtered_signal = signal * filtering
 
     return np.fft.ifft(filtered_signal).real
 
 def sine_distance(signal, window, center, radius):
     window_center = radius
 
-    normalised_signal = (signal[center - radius : center + radius + 1] / signal[center]).real
+    normalised_signal = np.absolute(signal[center - radius : center + radius + 1] / signal[center])
+    # normalised_signal = (signal[center - radius : center + radius + 1] / signal[center]).real
     normalised_window = window / window[window_center]
     distance = normalised_signal - normalised_window
     
@@ -70,13 +71,13 @@ if __name__ == "__main__":
 
     for _ in range(10):
         print('filtered')
-        # Play edited
-        sounddevice.play(filtered.flatten(), sr)
-        sounddevice.wait()
-        
         # Play normal
         print('normal')
         sounddevice.play(np.array(frames[:test_frame_length]).flatten(), sr)
         sounddevice.wait()
 
+        # Play edited
+        sounddevice.play(filtered.flatten(), sr)
+        sounddevice.wait()
+        
  

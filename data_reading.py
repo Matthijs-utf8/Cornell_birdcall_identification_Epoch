@@ -2,12 +2,20 @@ import librosa
 import pandas
 import numpy as np
 import sounddevice
+import os
 
 def read_config():
-    with open(".config") as config_file:
-        config_lines = config_file.readlines()
-        split = (line.split("=", 1) for line in config_lines)
-        return next(value for key, value in split if key == "data_folder") + "/"
+    if not os.path.isfile('.config'):
+        print("Where is the kaggle competition folder located?")
+        location = input()
+        with open(".config", "w") as config_file:
+            config_file.write("data_folder=" + location)
+            return location + "/"
+    else:
+        with open(".config") as config_file:
+            config_lines = config_file.readlines()
+            split = (line.split("=", 1) for line in config_lines)
+            return next(value for key, value in split if key == "data_folder") + "/"
 
 test_data_base_dir = read_config()
 
