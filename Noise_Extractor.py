@@ -177,23 +177,13 @@ def filter_sound(fullpath, verbose=False):
 		sd.play(samples, sampling_rate)
 		sd.wait()
 		
-<<<<<<< HEAD
-	#Uncomment this when you want to play the noisy or non noisy sounds at the end
-	sd.play(non_noisy_frames, sampling_rate)
-	sd.wait()
-=======
 		print("PLaying noise")
 		sd.play(noise, sampling_rate)
 		sd.wait()
->>>>>>> 9fd61b21ca2e49809e8a6920a3b591862a7172b7
 		
 		print("Playing reduced noise samples")
 		sd.play(reduced_noise, sampling_rate)
 		sd.wait()
 
 if __name__ == "__main__":
-<<<<<<< HEAD
-	get_noise_frames(df_train['full_path'][4080], plotting=False)
-=======
 	filter_sound(df_train['full_path'][2], verbose=True)
->>>>>>> 9fd61b21ca2e49809e8a6920a3b591862a7172b7
