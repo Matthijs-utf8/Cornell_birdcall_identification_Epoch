@@ -13,11 +13,8 @@ import librosa
 import sklearn
 import warnings
 import sounddevice as sd
-<<<<<<< HEAD
 import data_reading
-=======
 import noisereduce as nr
->>>>>>> 9fd61b21ca2e49809e8a6920a3b591862a7172b7
 
 # A function that prevents warnings when loading in files with librosa
 warnings.simplefilter("ignore")
