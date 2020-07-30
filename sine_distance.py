@@ -17,7 +17,6 @@ def apply_sine_distance(frame):
 
     # Calculate sine distance for different frequencies    
     radius = 48
-    step_size = radius * 2
     sine_distance_window = scipy.signal.hamming(radius * 2 + 1)    
 
     filtering = np.array([
@@ -27,27 +26,25 @@ def apply_sine_distance(frame):
 
     filtering = np.pad(filtering, (radius,radius), 'constant', constant_values=(0, 0))
 
-    filtered_signal = signal * filtering
+    filtered_signal = signal.real * filtering + signal.imag * 1j
 
     return np.fft.ifft(filtered_signal).astype('float')
 
 def sine_distance(signal, window, center, radius):
-    total_squared_distance = 0
-    
     window_center = radius
 
-    # Add each squared distance to the total
-    for i in range(-radius, radius + 1):
-        normalised_signal = (signal[center + i] / signal[center]).real
-        normalised_window = window[i + window_center] / window[window_center]
-        total_squared_distance += (normalised_signal - normalised_window) ** 2
+    normalised_signal = (signal[center - radius : center + radius + 1] / signal[center]).real
+    normalised_window = window / window[window_center]
+    distance = normalised_signal - normalised_window
+    
+    total_squared_distance = np.dot(distance, distance)
     
     # Return the square-root of the average
     return math.sqrt(total_squared_distance / (2 * radius + 1))
 
 if __name__ == "__main__":
     frames, sr = data_reading.default_test_frames()
-
+    
     start_sine_distance = time.time()
 
     filtered = np.array([
@@ -63,7 +60,7 @@ if __name__ == "__main__":
         sounddevice.play(filtered.flatten(), sr)
         sounddevice.wait()
         
-		# Play normal
+        # Play normal
         print('normal')
         sounddevice.play(np.array(frames[:50]).flatten(), sr)
         sounddevice.wait()
