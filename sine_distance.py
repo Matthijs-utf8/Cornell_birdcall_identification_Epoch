@@ -12,11 +12,11 @@ def apply_sine_distance(frame):
 
     # Compute Fast Fourier Transform
     signal = np.fft.fft(
-        frame * fft_hamming_window
+        frame# * fft_hamming_window
     )
 
     # Calculate sine distance for different frequencies    
-    radius = 48
+    radius = 8
     sine_distance_window = scipy.signal.hamming(radius * 2 + 1)    
 
     filtering = np.array([
@@ -25,10 +25,12 @@ def apply_sine_distance(frame):
     ])
 
     filtering = np.pad(filtering, (radius,radius), 'constant', constant_values=(0, 0))
+    avg = np.average(filtering)
+    filtering = (filtering > avg).astype('int')
 
-    filtered_signal = signal.real * filtering + signal.imag * 1j
+    filtered_signal = signal * filtering # signal.real + (signal.imag * filtering) * 1j
 
-    return np.fft.ifft(filtered_signal).astype('float')
+    return np.fft.ifft(filtered_signal).real
 
 def sine_distance(signal, window, center, radius):
     window_center = radius
@@ -44,12 +46,20 @@ def sine_distance(signal, window, center, radius):
 
 if __name__ == "__main__":
     frames, sr = data_reading.default_test_frames()
+    """ 
+    print(frames.shape)
     
+    avg = np.average(frames[:50])
+    frames += np.random.rand(frames.shape[0]) * avg * 0.5
+
+    """
+    test_frame_length = 100
+
     start_sine_distance = time.time()
 
     filtered = np.array([
         apply_sine_distance(frames[i])
-        for i in range(50)
+        for i in range(test_frame_length)
     ]).flatten()
 
     print(time.time() - start_sine_distance)
@@ -62,7 +72,7 @@ if __name__ == "__main__":
         
         # Play normal
         print('normal')
-        sounddevice.play(np.array(frames[:50]).flatten(), sr)
+        sounddevice.play(np.array(frames[:test_frame_length]).flatten(), sr)
         sounddevice.wait()
 
  
