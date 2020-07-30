@@ -1,3 +1,7 @@
+"""
+@author: Jesse Maas
+"""
+
 import numpy as np
 import time
 import data_reading
