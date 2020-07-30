@@ -19,8 +19,15 @@ def read_config():
 
 test_data_base_dir = read_config()
 
+def get_csv():
+    return pandas.read_csv(test_data_base_dir + "train.csv")
+
+def get_frames_from_index(index, csv):
+    full_path = test_data_base_dir + "train_audio/" + csv['ebird_code'][index] + '/' + csv['filename'][index]
+    return get_frames(full_path)
+
 def default_test_frames():
-    metadata = pandas.read_csv(test_data_base_dir + "/train.csv")
+    metadata = pandas.read_csv(test_data_base_dir + "train.csv")
 
     full_path = test_data_base_dir + "train_audio/" + metadata['ebird_code'][3] + '/' + metadata['filename'][3]
 
