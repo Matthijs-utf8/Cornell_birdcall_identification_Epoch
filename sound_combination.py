@@ -1,7 +1,7 @@
 import data_reading
 import sounddevice
 
-metadata = data_reading.get_csv()
+metadata = data_reading.get_train_metadata()
 
 frames1, sample_rate = data_reading.get_frames_from_index(3, metadata)
 frames2, _ = data_reading.get_frames_from_index(250, metadata)

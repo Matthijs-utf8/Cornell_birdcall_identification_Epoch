@@ -160,7 +160,6 @@ def get_noise_frames(samples, sampling_rate, window_width=2048, stepsize=512, ve
 	return np.array(noisy_frames)
 
 def filter_sound(fullpath, verbose=False):
-	
 	# Read in the audiofile with librosa.
 	samples, sampling_rate = librosa.load(fullpath)
 	
@@ -181,6 +180,8 @@ def filter_sound(fullpath, verbose=False):
 		print("Playing reduced noise samples")
 		sd.play(reduced_noise, sampling_rate)
 		sd.wait()
+
+	return reduced_noise, sampling_rate
 
 if __name__ == "__main__":
 	filter_sound(df_train['full_path'][2], verbose=True)

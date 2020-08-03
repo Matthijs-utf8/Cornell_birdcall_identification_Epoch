@@ -21,8 +21,19 @@ def read_config():
 test_data_base_dir = read_config()
 
 # Read train.csv from the kaggle directory into a pandas dataframe
-def get_csv():
+def get_train_metadata():
     return pandas.read_csv(test_data_base_dir + "train.csv")
+
+def get_validation_metadata():
+    return pandas.read_csv(test_data_base_dir + "example_test_audio_metadata.csv")
+
+def get_test_example_files():
+    directory = test_data_base_dir + "example_test_audio/"
+
+    return [
+        directory + file
+        for file in os.listdir(directory)
+    ]
 
 # Returns the n'th audio fragment
 def get_frames_from_index(index, csv):

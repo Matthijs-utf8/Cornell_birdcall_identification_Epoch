@@ -73,6 +73,9 @@ if __name__ == "__main__":
     ]).flatten()
 
     print(time.time() - start_sine_distance)
+    np.save('filtered', filtered.flatten())
+    np.save('normal', frames[:50].flatten())
+    print(sr)
 
     for _ in range(10):
         # Play edited
