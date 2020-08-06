@@ -1,5 +1,6 @@
 from tensorflow import keras
 from tensorflow.keras import layers
+import dataloader
 
 # Credit: https://www.kaggle.com/hidehisaarai1213/inference-pytorch-birdcall-resnet-baseline
 bird_code = {
@@ -60,9 +61,19 @@ bird_code = {
 
 inverted_bird_code = {v: k for k, v in bird_code.items()}
 
-model = keras.models.Sequential([
-    keras.Input(feature_extractor.layers[-1].output_shape[1:]), # shape=(16, 9, 2048)
-    layers.MaxPool2D(),
-    layers.Conv2D(1024, (3, 3), activation='relu'),
-    layers.Dense(len(bird_code))
-])
+input_shape = (16, 9, 2048)
+
+if __name__ == "__main__":
+    data_generator = dataloader.DataGenerator("preprocessed", dim=input_shape[:2], n_channels=input_shape[2])
+
+    model = keras.models.Sequential([
+        keras.Input(input_shape), # shape=(16, 9, 2048)
+        layers.MaxPool2D(),
+        layers.Conv2D(1024, (3, 3), activation='relu'),
+        layers.Dense(len(bird_code)),
+        layers.Activation('sigmoid')
+    ])
+
+    model.compile()
+
+    model.fit_generator(data_generator, epochs=5)
