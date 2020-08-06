@@ -2,6 +2,8 @@ from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras.applications import ResNet50
 from tensorflow.keras.models import Model
+from tqdm import tqdm
+
 from Noise_Extractor import filter_sound, get_frames
 import data_reading
 import numpy as np
@@ -48,7 +50,7 @@ if __name__ == "__main__":
     if not os.path.isdir(output_folder):
         os.mkdir(output_folder)
 
-    for birdcode in sys.argv[1:]:
+    for birdcode in tqdm(sys.argv[1:]):
         fragment_id = 0
 
         path = data_reading.test_data_base_dir + "train_audio/" + birdcode + "/"
