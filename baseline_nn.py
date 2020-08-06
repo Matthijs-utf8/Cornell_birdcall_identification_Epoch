@@ -64,16 +64,17 @@ inverted_bird_code = {v: k for k, v in bird_code.items()}
 input_shape = (16, 9, 2048)
 
 if __name__ == "__main__":
-    data_generator = dataloader.DataGenerator("preprocessed", dim=input_shape[:2], n_channels=input_shape[2])
+    data_generator = dataloader.DataGenerator("preprocessed")
 
     model = keras.models.Sequential([
-        keras.Input(input_shape), # shape=(16, 9, 2048)
+        # keras.Input(input_shape), # shape=(16, 9, 2048)
+        layers.Conv2D(1024, (3, 3), activation='relu', input_shape=input_shape),
         layers.MaxPool2D(),
-        layers.Conv2D(1024, (3, 3), activation='relu'),
-        layers.Dense(len(bird_code)),
-        layers.Activation('sigmoid')
+        layers.Dense(len(bird_code), activation="sigmoid"),
     ])
+
+    print("trainable count:", len(model.trainable_variables))
 
     model.compile()
 
-    model.fit_generator(data_generator, epochs=5)
+    model.fit(data_generator, epochs=5)
