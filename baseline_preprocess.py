@@ -18,7 +18,7 @@ def preprocess(file_path, feature_extractor: keras.models.Model):
     if sample_rate != universal_sample_rate:
         sound = resample(sound, int(universal_sample_rate * (len(sound) / sample_rate)))
 
-    print(sound.shape)
+    # print(sound.shape)
 
     spectrogram = np.array([
         np.fft.fft(sound[i * window_size : (i + 1) * window_size])
