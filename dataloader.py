@@ -2,15 +2,18 @@ import glob
 import numpy as np
 from tensorflow import keras
 
+
 class DataGenerator(keras.utils.Sequence):
     'Generates data for Keras'
-    def __init__(self, data_root, batch_size=32, dim=(512,512), n_channels=1, shuffle=True):
+
+    def __init__(self, data_root, batch_size=32, dim=(512, 512), n_channels=1, shuffle=True):
         'Initialization'
         self.batch_size = batch_size
         self.dim = dim
         self.n_channels = n_channels
         self.shuffle = shuffle
 
+        self.data_root = data_root
         self.files = glob.glob(f"{data_root}/*")
         self.indexes = np.arange(len(self.files))
 
@@ -23,7 +26,7 @@ class DataGenerator(keras.utils.Sequence):
     def __getitem__(self, index):
         'Generate one batch of data'
         # Generate indexes of the batch
-        indexes = self.indexes[index*self.batch_size:(index+1)*self.batch_size]
+        indexes = self.indexes[index * self.batch_size:(index + 1) * self.batch_size]
 
         # Find list of IDs
         files_temp = [self.files[k] for k in indexes]
@@ -39,7 +42,7 @@ class DataGenerator(keras.utils.Sequence):
             np.random.shuffle(self.indexes)
 
     def __data_generation(self, files_temp):
-        'Generates data containing batch_size samples' # X : (n_samples, *dim, n_channels)
+        'Generates data containing batch_size samples'  # X : (n_samples, *dim, n_channels)
         # Initialization
         X = np.empty((self.batch_size, *self.dim, self.n_channels))
         y = np.empty((self.batch_size,), dtype=str)
@@ -47,7 +50,7 @@ class DataGenerator(keras.utils.Sequence):
         # Generate data
         for i, file in enumerate(files_temp):
             # Store sample
-            X[i,] = np.load(file)
+            X[i,] = np.load(self.data_root + "/" + file)
 
             # Store class
             y[i] = file.split("/")[-1].split("_")
