@@ -34,7 +34,7 @@ df_train = pd.read_csv(base_dir + "train.csv")
 ####### !!!!!!!!!!!!!!! ##########
 ####### Run these two lines below once if you've never run this file before. It adds a filepath to each file in train.csv #########
 # df_train['full_path'] = base_dir + "train_audio/" + df_train['ebird_code'] + '/' + df_train['filename']
-# pd.to_csv(base_dir + "train.csv")
+# df_train.to_csv(base_dir + "train.csv")
 
 """ Split a soundwave up in frames """
 def get_frames(samples, window_width, stepsize):
