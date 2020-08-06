@@ -48,7 +48,7 @@ class DataGenerator(keras.utils.Sequence):
         batch_size = min(self.batch_size, len(files_temp))
 
         X = np.empty((batch_size, *self.dim))
-        y = np.empty((batch_size,), dtype=int)
+        y = np.zeros((batch_size, len(bird_code)), dtype=int)
 
         # Generate data
         for i, file in enumerate(files_temp):
@@ -58,9 +58,9 @@ class DataGenerator(keras.utils.Sequence):
 
             # Store class
             bird_name = file.split("/")[-1].split("_")[0]
-            y[i] = bird_code[bird_name]
+            y[i, bird_code[bird_name]] = 1
         print("y", y)
-        return X, keras.utils.to_categorical(y, num_classes=len(bird_code))
+        return X, y# keras.utils.to_categorical(y, num_classes=len(bird_code))
 
 if __name__ == '__main__':
     d = DataGenerator("preprocessed")
