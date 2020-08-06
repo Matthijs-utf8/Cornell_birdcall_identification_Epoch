@@ -53,6 +53,6 @@ class DataGenerator(keras.utils.Sequence):
             X[i,] = np.load(self.data_root + "/" + file)
 
             # Store class
-            y[i] = file.split("/")[-1].split("_")
+            y[i] = file.split("/")[-1].split("_")[0]
 
         return X, y
