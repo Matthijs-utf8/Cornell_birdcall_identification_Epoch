@@ -35,6 +35,7 @@ if __name__ == "__main__":
     parser.add_argument("--lr", default=0.0001, type=float, help="Learning rate")
     parser.add_argument("--epochs", default=50, type=int, help="Number of epochs to train for")
     parser.add_argument("--batch-size", default=512, type=int, help="Training batch size")
+    parser.add_argument("--workers", default=4, type=int, help="Number of dataloader workers")
 
     args = parser.parse_args()
 
@@ -59,7 +60,7 @@ if __name__ == "__main__":
 
     model.compile(loss="categorical_crossentropy", optimizer=optimizer, metrics=[keras.metrics.CategoricalAccuracy(), f1_m,precision_m, recall_m])
 
-    model.fit(data_generator, epochs=args.epochs)
+    model.fit(data_generator, epochs=args.epochs, workers=args.workers)
     model.save("baseline.tf")
 
     model = keras.models.load_model("baseline.tf")
