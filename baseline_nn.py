@@ -33,13 +33,15 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", default=1234, type=int, help="Sets Gym, TF, and Numpy seeds")
     parser.add_argument("--lr", default=0.0001, type=float, help="Learning rate")
+    parser.add_argument("--epochs", default=50, type=int, help="Number of epochs to train for")
+    parser.add_argument("--batch-size", default=512, type=int, help="Training batch size")
 
     args = parser.parse_args()
 
     np.random.seed(args.seed)
 
 
-    data_generator = dataloader.DataGenerator("preprocessed", batch_size=512)
+    data_generator = dataloader.DataGenerator("preprocessed", batch_size=args.batch_size)
     print("len =", len(bird_code))
 
     model = keras.models.Sequential([
@@ -57,7 +59,7 @@ if __name__ == "__main__":
 
     model.compile(loss="categorical_crossentropy", optimizer=optimizer, metrics=[keras.metrics.CategoricalAccuracy(), f1_m,precision_m, recall_m])
 
-    model.fit(data_generator, epochs=5)
+    model.fit(data_generator, epochs=args.epochs)
     model.save("baseline.tf")
 
     model = keras.models.load_model("baseline.tf")
