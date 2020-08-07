@@ -1,3 +1,6 @@
+import argparse
+import numpy as np
+
 from tensorflow import keras
 from tensorflow.keras import backend as K
 
@@ -27,6 +30,15 @@ def f1_m(y_true, y_pred):
     return 2*((precision*recall)/(precision+recall+K.epsilon()))
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--seed", default=1234, type=int, help="Sets Gym, TF, and Numpy seeds")
+    parser.add_argument("--lr", default=0.0001, type=float, help="Learning rate")
+
+    args = parser.parse_args()
+
+    np.random.seed(args.seed)
+
+
     data_generator = dataloader.DataGenerator("preprocessed", batch_size=512)
     print("len =", len(bird_code))
 
@@ -39,8 +51,11 @@ if __name__ == "__main__":
     ])
 
     print("trainable count:", len(model.trainable_variables))
+    optimizer = keras.optimizers.Adam(
+        learning_rate=args.lr,
+    )
 
-    model.compile(loss="categorical_crossentropy", optimizer='adam', metrics=[keras.metrics.CategoricalAccuracy(), f1_m,precision_m, recall_m])
+    model.compile(loss="categorical_crossentropy", optimizer=optimizer, metrics=[keras.metrics.CategoricalAccuracy(), f1_m,precision_m, recall_m])
 
     model.fit(data_generator, epochs=5)
     model.save("baseline.tf")
