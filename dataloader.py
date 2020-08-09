@@ -59,7 +59,6 @@ class DataGenerator(keras.utils.Sequence):
             # Store class
             bird_name = file.split("/")[-1].split("_")[0]
             y[i, bird_code[bird_name]] = 1
-        print("y", y)
         return X, y# keras.utils.to_categorical(y, num_classes=len(bird_code))
 
 if __name__ == '__main__':
