@@ -4,6 +4,7 @@ from tensorflow.keras import layers
 from tensorflow.keras.applications import ResNet50
 from tensorflow.keras.models import Model
 
+from tqdm import tqdm
 import numpy as np
 from scipy.signal import resample
 import librosa
@@ -22,7 +23,7 @@ def preprocess(file_path, feature_extractor: keras.models.Model):
     if sample_rate != universal_sample_rate:
         sound = resample(sound, int(universal_sample_rate * (len(sound) / sample_rate)))
 
-    print(sound.shape)
+    # print(sound.shape)
 
     spectrogram = np.array([
         np.fft.fft(sound[i * window_size : (i + 1) * window_size]).real
@@ -80,7 +81,7 @@ if __name__ == "__main__":
     if not os.path.isdir(output_folder):
         os.mkdir(output_folder)
 
-    for birdcode in sys.argv[1:]:
+    for birdcode in tqdm(sys.argv[1:]):
         fragment_id = 0
 
         path = data_reading.test_data_base_dir + "train_audio/" + birdcode + "/"
