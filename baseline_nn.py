@@ -63,9 +63,9 @@ if __name__ == "__main__":
                   metrics=[keras.metrics.CategoricalAccuracy(), f1_m, precision_m, recall_m])
 
     model.fit(data_generator, epochs=args.epochs, workers=args.workers)
-    model.save("model_baseline")
+    model.save("models/baseline")
 
-    model = keras.models.load_model("model_baseline",
+    model = keras.models.load_model("models/baseline",
                                     custom_objects={'recall_m': recall_m, 'precision_m': precision_m, 'f1_m': f1_m})
 
     test_generator = dataloader.DataGeneratorTestset()
