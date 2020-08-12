@@ -86,7 +86,7 @@ if __name__ == "__main__":
             fragments = tf_fourier(path + file_name)
 
             for fragment in fragments:
-                # np.save(output_folder + "/" + birdcode + "_" + str(fragment_id), fragment)
+                np.save(output_folder + "/" + birdcode + "_" + str(fragment_id), fragment)
                 fragment_id += 1
 
 
