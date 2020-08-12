@@ -13,7 +13,7 @@ from matplotlib import pyplot as plt
 from Noise_Extractor import filter_sound, get_frames
 import data_reading
 
-window_size = 220
+window_size = 440
 universal_sample_rate = 22000
 spectrogram_slices_per_input = universal_sample_rate * 5 // window_size # = 5 seconds
 
@@ -25,10 +25,9 @@ def preprocess(file_path, feature_extractor: keras.models.Model):
 
     # print(sound.shape)
 
-    spectrogram = np.array([
-        np.fft.fft(sound[i * window_size : (i + 1) * window_size]).real
-        for i in range(0, sound.shape[0] // window_size)
-    ])
+    spectrogram = tf.abs(
+        tf.signal.stft(sound, window_size, window_size)
+    ).numpy()
 
     repeated = np.repeat(
         spectrogram.reshape((1, spectrogram.shape[0], window_size, 1)),
@@ -47,25 +46,22 @@ def tf_fourier(file_path):
 
     if sample_rate != universal_sample_rate:
         sound = resample(sound, int(universal_sample_rate * (len(sound) / sample_rate)))
+        pass
 
-    print(sound.shape)
+    spectrogram = tf.abs(
+        tf.signal.stft(tf.reshape(sound, [1, -1]), window_size, window_size, fft_length=512)
+    )[0]
 
-    spectrogram = np.array([
-        tf.math.real(
-            tf.signal.fft(
-                sound[i * window_size : (i + 1) * window_size]
-            )
-        )
-        for i in range(0, sound.shape[0] // window_size)
-    ])
+    slices = []
+    for i in range(spectrogram.shape[0] // spectrogram_slices_per_input):
+        spectrogram_slice = spectrogram[i * spectrogram_slices_per_input : (i + 1) * spectrogram_slices_per_input]
+        slices.append(spectrogram_slice)
+        
+        # print(spectrogram_slice.shape)
+        # plt.imshow(spectrogram_slice)
+        # plt.show()
 
-    spectrogram = np.array([
-        np.fft.fft(sound[i * window_size : (i + 1) * window_size]).real
-        for i in range(0, sound.shape[0] // window_size)
-    ])
-
-    plt.imshow(spectrogram)
-    plt.show()
+    return slices
 
     
 
@@ -76,21 +72,21 @@ if __name__ == "__main__":
     import sys
     import os
 
-    output_folder = "preprocessed"
+    output_folder = "spectrograms"
     
     if not os.path.isdir(output_folder):
         os.mkdir(output_folder)
 
-    for birdcode in tqdm(sys.argv[1:]):
+    for birdcode in sys.argv[1:]:
+        print(birdcode)
         fragment_id = 0
 
         path = data_reading.test_data_base_dir + "train_audio/" + birdcode + "/"
-        for file_name in os.listdir(path):
+        for file_name in tqdm(os.listdir(path)):
             fragments = tf_fourier(path + file_name)
-            exit()
 
             for fragment in fragments:
-                np.save("preprocessed/" + birdcode + "_" + str(fragment_id), fragment)
+                # np.save(output_folder + "/" + birdcode + "_" + str(fragment_id), fragment)
                 fragment_id += 1
 
 
