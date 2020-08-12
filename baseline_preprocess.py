@@ -4,8 +4,6 @@ from tensorflow.keras import layers
 from tensorflow.keras.applications import ResNet50
 from tensorflow.keras.models import Model
 
-from tensorflow.keras import backend as K
-
 from tqdm import tqdm
 import numpy as np
 from scipy.signal import resample
@@ -19,10 +17,7 @@ window_size = 440
 universal_sample_rate = 22000
 spectrogram_slices_per_input = universal_sample_rate * 5 // window_size # = 5 seconds
 
-config = tf.ConfigProto()
-config.gpu_options.allow_growth=True
-sess = tf.Session(config=config)
-K.set_session(sess)
+tf.config.gpu.set_per_process_memory_growth(True)
 
 def preprocess(file_path, feature_extractor: keras.models.Model):
     """
