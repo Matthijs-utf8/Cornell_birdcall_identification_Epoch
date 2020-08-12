@@ -42,7 +42,7 @@ if __name__ == "__main__":
 
     np.random.seed(args.seed)
 
-spectrogram_dim = (250, 257)
+    spectrogram_dim = (250, 257)
 
     input_shape = (16, 7, 2048)
     # input_shape = spectrogram_dim + (1,)

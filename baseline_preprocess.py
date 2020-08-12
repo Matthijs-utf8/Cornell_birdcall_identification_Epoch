@@ -85,7 +85,7 @@ if __name__ == "__main__":
             fragments = preprocess(path_to_birdsound_dir + file_name, resnet)
 
             for fragment in fragments:
-                np.save(output_dir + "/" + birdcode + "_" + str(fragment_id), fragment)
+                np.savez_compressed(output_dir + "/" + birdcode + "_" + str(fragment_id), fragment)
                 fragment_id += 1
 
 
