@@ -58,7 +58,7 @@ class DataGenerator(keras.utils.Sequence):
             # Store sample
 
             try:
-                X[i,] = np.load(file)
+                X[i,] = np.reshape(np.load(file), self.dim)
             except ValueError as e:
                 raise ValueError("Malformed numpy file:" + file) from e
 

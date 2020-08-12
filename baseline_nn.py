@@ -8,7 +8,6 @@ from tensorflow.keras import layers
 import dataloader
 from birdcodes import bird_code
 
-input_shape = (16, 7, 2048)
 
 
 
@@ -41,14 +40,22 @@ if __name__ == "__main__":
 
     np.random.seed(args.seed)
 
+    spectrogram_dim = (250, 257)
 
-    data_generator = dataloader.DataGenerator("preprocessed", batch_size=args.batch_size)
+    # input_shape = (16, 7, 2048)
+    input_shape = spectrogram_dim + (1,)
+
+
+    data_generator = dataloader.DataGenerator("spectrograms", batch_size=args.batch_size, dim=input_shape)
     print("len =", len(bird_code))
 
     model = keras.models.Sequential([
         # keras.Input(input_shape), # shape=(16, 9, 2048)
-        layers.Conv2D(1024, (3, 3), activation='relu', input_shape=input_shape),
+        layers.Conv2D(16, (5, 5), activation='relu', input_shape=input_shape),
         layers.MaxPool2D(),
+        layers.Conv2D(16, (5, 5), activation='relu'),
+        layers.MaxPool2D(),
+        layers.Conv2D(16, (5, 5), activation='relu'),
         layers.Flatten(),
         layers.Dense(len(bird_code), activation="sigmoid"),
     ])
