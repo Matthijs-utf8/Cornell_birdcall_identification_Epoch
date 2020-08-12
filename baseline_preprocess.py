@@ -36,7 +36,7 @@ def preprocess(file_path, feature_extractor: keras.models.Model):
 
 def tf_fourier(file_path):
     """
-    Applies the short-time fourier transform implemented on the GPU by TensorFlow
+    Loads the audio file, and applies the short-time fourier transform implemented on the GPU by TensorFlow
     """
     sound, sample_rate = librosa.load(file_path)
 
@@ -79,10 +79,10 @@ if __name__ == "__main__":
         print(birdcode)
 
         fragment_id = 0   # A unique identifier for each slice of 5 seconds
-        path = data_reading.test_data_base_dir + "train_audio/" + birdcode + "/"
+        path_to_birdsound_dir = data_reading.test_data_base_dir + "train_audio/" + birdcode + "/"
 
-        for file_name in tqdm(os.listdir(path)):
-            fragments = preprocess(path + file_name, resnet)
+        for file_name in tqdm(os.listdir(path_to_birdsound_dir)):
+            fragments = preprocess(path_to_birdsound_dir + file_name, resnet)
 
             for fragment in fragments:
                 np.save(output_dir + "/" + birdcode + "_" + str(fragment_id), fragment)
