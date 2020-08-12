@@ -4,7 +4,7 @@ from tensorflow import keras
 import pandas as pd
 
 import data_reading
-from baseline_preprocess import preprocess, feature_extractor
+from baseline_preprocess import preprocess, resnet
 from birdcodes import bird_code
 
 
@@ -113,7 +113,7 @@ class DataGeneratorTestset(keras.utils.Sequence):
 
         for file in self.files:
             file_id = file.split("/")[-1].split("_")[0]
-            fragments = preprocess(file, feature_extractor)
+            fragments = preprocess(file, resnet)
 
             for i, fragment in enumerate(fragments):
                 t_start, t_end = i * 5, i * 5 + 5

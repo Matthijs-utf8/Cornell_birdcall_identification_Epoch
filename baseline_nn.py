@@ -42,11 +42,12 @@ if __name__ == "__main__":
 
     spectrogram_dim = (250, 257)
 
-    # input_shape = (16, 7, 2048)
-    input_shape = spectrogram_dim + (1,)
+    input_shape = (16, 7, 2048)
+    # input_shape = spectrogram_dim + (1,)
 
 
-    data_generator = dataloader.DataGenerator("spectrograms", batch_size=args.batch_size, dim=input_shape)
+    # data_generator = dataloader.DataGenerator("spectrograms", batch_size=args.batch_size, dim=input_shape)
+    data_generator = dataloader.DataGenerator("preprocessed2", batch_size=args.batch_size, dim=input_shape)
     print("len =", len(bird_code))
 
     model = keras.models.Sequential([
