@@ -17,7 +17,8 @@ window_size = 440
 universal_sample_rate = 22000
 spectrogram_slices_per_input = universal_sample_rate * 5 // window_size # = 5 seconds
 
-tf.config.gpu.set_per_process_memory_growth(True)
+gpu_devices = tf.config.experimental.list_physical_devices('GPU')
+tf.config.experimental.set_memory_growth(gpu_devices[0], True)
 
 def preprocess(file_path, feature_extractor: keras.models.Model):
     """
