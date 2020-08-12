@@ -57,10 +57,13 @@ class DataGenerator(keras.utils.Sequence):
         for i, file in enumerate(files_temp):
             # Store sample
 
+
             try:
-                X[i,] = np.load(file)
+                data = np.load(file)
             except ValueError as e:
                 raise ValueError("Malformed numpy file:" + file) from e
+
+            X[i,] = data
 
             # Store class
             bird_name = file.split("/")[-1].split("_")[0]
