@@ -11,7 +11,7 @@ from birdcodes import bird_code
 class DataGenerator(keras.utils.Sequence):
     'Generates data for Keras'
 
-    def __init__(self, data_root, batch_size=32, dim=(16,7,2048), shuffle=True):
+    def __init__(self, data_root, batch_size=32, dim=(16, 7, 2048), shuffle=True):
         'Initialization'
         self.batch_size = batch_size
         self.dim = dim
@@ -57,25 +57,30 @@ class DataGenerator(keras.utils.Sequence):
         for i, file in enumerate(files_temp):
             # Store sample
 
+
             try:
-                X[i,] = np.reshape(np.load(file), self.dim)
+                data = np.load(file)
             except ValueError as e:
                 raise ValueError("Malformed numpy file:" + file) from e
+
+            X[i,] = np.reshape(data, self.dim)
 
             # Store class
             bird_name = file.split("/")[-1].split("_")[0]
             y[i, bird_code[bird_name]] = 1
-        return X, y# keras.utils.to_categorical(y, num_classes=len(bird_code))
+        return X, y  # keras.utils.to_categorical(y, num_classes=len(bird_code))
+
 
 def compute_overlap(x1, y1, x2, y2):
-    return max(x1,y1) - min(x2,y2)
+    return max(x1, y1) - min(x2, y2)
+
 
 # minimum overlap of short birdcalls
 MIN_OVERLAP = 0.5
 # the min duration of a 'long' bircall
-LONG_BIRDCALL_LENGTH = 5 # seconds
+LONG_BIRDCALL_LENGTH = 5  # seconds
 # how long should we at least hear this birdcall in a segment
-LONG_OVERLAP_SECONDS = 2 # seconds
+LONG_OVERLAP_SECONDS = 2  # seconds
 
 
 class DataGeneratorTestset(keras.utils.Sequence):
@@ -86,15 +91,11 @@ class DataGeneratorTestset(keras.utils.Sequence):
         self.batch_size = batch_size
 
         data_root = data_reading.test_data_base_dir + "example_test_audio/"
-        label_root = data_reading.test_data_base_dir + "example_test_audio_metadata.csv"
+        label_root = data_reading.test_data_base_dir + "example_test_audio_summary.csv"
         self.labels = pd.read_csv(label_root)
         self.files = glob.glob(f"{data_root}/*")
 
-        self.X = []
-        self.y = []
-
         self.__data_generation()
-
 
     def __len__(self):
         'Denotes the number of batches per epoch'
@@ -103,40 +104,36 @@ class DataGeneratorTestset(keras.utils.Sequence):
     def __getitem__(self, index):
         'Generate one batch of data'
 
-        return self.X[index:index+self.batch_size], self.y[index:index+self.batch_size]
+        return self.X[index:index + self.batch_size], self.y[index:index + self.batch_size]
 
     def __data_generation(self):
 
+        self.X = []
+        self.y = []
+
         for file in self.files:
+            file_id = file.split("/")[-1].split("_")[0]
             fragments = preprocess(file, feature_extractor)
 
             for i, fragment in enumerate(fragments):
                 t_start, t_end = i * 5, i * 5 + 5
                 self.X.append(fragment)
 
-                detected_birds = set()
-                for row in self.labels.itertuples():
-                    if not row.file_id in file:
-                        continue
+                rows_file = self.labels["filename"] == file_id
+                rows_time = self.labels["seconds"] == t_end
+                detected_birds_ecodes = self.labels.loc[rows_file & rows_time]['birds']
+                assert len(
+                    detected_birds_ecodes) == 1, "Multiple entries for time segment in test audio summary csv file"
 
-                    overlap = compute_overlap(t_start, t_end, row.time_start, row.time_end)
-                    if overlap <= 0:
-                        continue
-
-                    label_duration = row.time_start - row.time_end
-                    if label_duration < LONG_BIRDCALL_LENGTH and overlap / label_duration < MIN_OVERLAP:
-                        # Short birdcall
-                        detected_birds.add(bird_code.get(row.ebird_code, None))
-                    elif overlap > LONG_OVERLAP_SECONDS:
-                        # Long birdcall
-                        detected_birds.add(bird_code.get(row.ebird_code, None))
-
+                detected_birds_ecodes = detected_birds_ecodes.iloc[0].split(" ")
+                detected_birds = {bird_code.get(x, None) for x in detected_birds_ecodes}
 
                 y = np.array([1 if i in detected_birds else 0 for i in bird_code.values()])
                 self.y.append(y)
 
         self.X = np.concatenate(self.X)  # concat from (32, 1, 16, 7, 2048) to (32, 16, 7, 2048)
         self.y = np.array(self.y)
+
 
 if __name__ == '__main__':
     print("\nTRAIN\n")
