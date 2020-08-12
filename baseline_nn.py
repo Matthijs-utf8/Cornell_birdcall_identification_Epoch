@@ -11,12 +11,12 @@ from birdcodes import bird_code
 input_shape = (16, 7, 2048)
 
 
-
 def recall_m(y_true, y_pred):
     true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
     possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
     recall = true_positives / (possible_positives + K.epsilon())
     return recall
+
 
 def precision_m(y_true, y_pred):
     true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
@@ -24,10 +24,12 @@ def precision_m(y_true, y_pred):
     precision = true_positives / (predicted_positives + K.epsilon())
     return precision
 
+
 def f1_m(y_true, y_pred):
     precision = precision_m(y_true, y_pred)
     recall = recall_m(y_true, y_pred)
-    return 2*((precision*recall)/(precision+recall+K.epsilon()))
+    return 2 * ((precision * recall) / (precision + recall + K.epsilon()))
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -40,7 +42,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     np.random.seed(args.seed)
-
 
     data_generator = dataloader.DataGenerator("preprocessed", batch_size=args.batch_size)
     print("len =", len(bird_code))
@@ -58,12 +59,14 @@ if __name__ == "__main__":
         learning_rate=args.lr,
     )
 
-    model.compile(loss="categorical_crossentropy", optimizer=optimizer, metrics=[keras.metrics.CategoricalAccuracy(), f1_m,precision_m, recall_m])
+    model.compile(loss="categorical_crossentropy", optimizer=optimizer,
+                  metrics=[keras.metrics.CategoricalAccuracy(), f1_m, precision_m, recall_m])
 
     model.fit(data_generator, epochs=args.epochs, workers=args.workers)
-    model.save("baseline.tf")
+    model.save("model_baseline")
 
-    model = keras.models.load_model("baseline.tf")
+    model = keras.models.load_model("model_baseline",
+                                    custom_objects={'recall_m': recall_m, 'precision_m': precision_m, 'f1_m': f1_m})
 
     test_generator = dataloader.DataGeneratorTestset()
     loss, accuracy, f1_score, precision, recall = model.evaluate(test_generator)
