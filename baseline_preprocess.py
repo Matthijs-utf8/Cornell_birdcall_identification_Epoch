@@ -3,6 +3,7 @@ from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras.applications import ResNet50
 from tensorflow.keras.models import Model
+from multiprocessing import Process
 
 from tqdm import tqdm
 import numpy as np
@@ -69,6 +70,25 @@ def tf_fourier(file_path):
 
 spectrogram_shape = (250, 257)
 
+def process_birdnames(names):
+    for birdcode in args.bird_codes:
+        print("Processing")
+        print(birdcode)
+
+        fragment_id = 0  # A unique identifier for each slice of 5 seconds
+        path_to_birdsound_dir = data_reading.test_data_base_dir + "train_audio/" + birdcode + "/"
+
+        for file_name in tqdm(os.listdir(path_to_birdsound_dir)):
+            if use_resnet:
+                fragments = preprocess(path_to_birdsound_dir + file_name, resnet)
+            else:
+                fragments = tf_fourier(path_to_birdsound_dir + file_name)
+
+            for fragment in fragments:
+                np.savez_compressed(output_dir + "/" + birdcode + "_" + str(fragment_id), fragment)
+                fragment_id += 1
+
+
 if __name__ == "__main__":
     import sys
     import os
@@ -95,21 +115,16 @@ if __name__ == "__main__":
     if args.bird_codes == []:
         args.bird_codes = bird_code.keys()
 
-    for birdcode in args.bird_codes:
-        print("Processing")
-        print(birdcode)
+    N_PROCESSES = 12
 
-        fragment_id = 0   # A unique identifier for each slice of 5 seconds
-        path_to_birdsound_dir = data_reading.test_data_base_dir + "train_audio/" + birdcode + "/"
+    processes = []
+    for sublist in np.array_split(args.bird_codes, N_PROCESSES):
+        p = Process(target=process_birdnames, args=(sublist,))
+        p.start()
+        processes.append(p)
 
-        for file_name in tqdm(os.listdir(path_to_birdsound_dir)):
-            if use_resnet:
-                fragments = preprocess(path_to_birdsound_dir + file_name, resnet)
-            else:
-                fragments = tf_fourier(path_to_birdsound_dir + file_name)
-
-            for fragment in fragments:
-                np.savez_compressed(output_dir + "/" + birdcode + "_" + str(fragment_id), fragment)
-                fragment_id += 1
+    for p in processes:
+        p.join()
+    print("All done!")
 
 
