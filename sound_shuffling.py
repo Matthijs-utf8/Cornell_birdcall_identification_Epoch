@@ -131,12 +131,9 @@ def combine_files(files, universal_sr=22050, seconds=5):
 
 	return combined_sounds, labels
 
-""" Takes in a soundfile path and returns the sound samples shifted in amplitude by n_steps. """
-def amplitude_shift(fullpath, n_steps):
-
-	samples, sampling_rate = librosa.load(fullpath)
+""" Takes in a sound sample and returns the sound samples shifted in amplitude by n_steps."""
+def amplitude_shift(sample, n_steps):
 	shifted_samples = librosa.effects.pitch_shift(samples,sampling_rate,n_steps=n_steps)
-
 	return shifted_samples
 
 """ Visualizes the amplitude shift. Needs the original samples, sampling rate and shifted samples."""
@@ -155,6 +152,4 @@ def plot_amplitude(original_samples, shifted_samples, sampling_rate):
 
 
 if __name__ == "__main__":
-	original = df_train['full_path'][1]
-	samples, sampling_rate = librosa.load(original)
-	plot_amplitude(samples, amplitude_shift(original, 4), sampling_rate)
+	pass
