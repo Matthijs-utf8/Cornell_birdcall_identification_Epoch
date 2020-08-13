@@ -1,10 +1,13 @@
 import glob
+import threading
+
 import numpy as np
 from tensorflow import keras
 import pandas as pd
+from tensorflow.python.keras.applications.resnet import ResNet50
 
 import data_reading
-from baseline_preprocess import preprocess, resnet
+from baseline_preprocess import preprocess, spectrogram_shape
 from birdcodes import bird_code
 
 
@@ -60,6 +63,13 @@ class DataGenerator(keras.utils.Sequence):
 
             try:
                 data = np.load(file)
+                # compressed files are stored as dict
+                if type(data) == np.lib.npyio.NpzFile:
+                    data = data["arr_0"]
+
+                    # fix shape issue (250, 257) -> (250, 257, 1)
+                    data = data[:, :, np.newaxis]
+
             except ValueError as e:
                 raise ValueError("Malformed numpy file: " + file) from e
             
@@ -98,6 +108,8 @@ class DataGeneratorTestset(keras.utils.Sequence):
         self.labels = pd.read_csv(label_root)
         self.files = glob.glob(f"{data_root}/*")
 
+        self.resnet = ResNet50(input_shape=(spectrogram_shape + (3,)), include_top=False)
+
         self.__data_generation()
 
     def __len__(self):
@@ -116,7 +128,7 @@ class DataGeneratorTestset(keras.utils.Sequence):
 
         for file in self.files:
             file_id = file.split("/")[-1].split("_")[0]
-            fragments = preprocess(file, resnet)
+            fragments = preprocess(file, self.resnet)
 
             for i, fragment in enumerate(fragments):
                 t_start, t_end = i * 5, i * 5 + 5

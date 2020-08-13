@@ -45,7 +45,10 @@ def tf_fourier(file_path):
     """
     Loads the audio file, and applies the short-time fourier transform implemented on the GPU by TensorFlow
     """
-    sound, sample_rate = librosa.load(file_path)
+    try:
+        sound, sample_rate = librosa.load(file_path)
+    except ZeroDivisionError as e:
+        raise ZeroDivisionError("File for error above:", file_path) from e
 
     # Make sure all files have the same sample rate
     if sample_rate != universal_sample_rate:

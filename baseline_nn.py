@@ -3,11 +3,21 @@ import numpy as np
 
 from tensorflow import keras
 from tensorflow.keras import backend as K
+from tensorflow.keras.callbacks import TensorBoard
 
 from tensorflow.keras import layers
 import dataloader
 from birdcodes import bird_code
 
+class LRTensorBoard(TensorBoard):
+    "Tensorboard that also logs learning rate"
+    def __init__(self, log_dir, **kwargs):
+        super().__init__(log_dir=log_dir, **kwargs)
+
+    def on_epoch_end(self, epoch, logs=None):
+        logs = logs or {}
+        logs.update({'lr': K.eval(self.model.optimizer.lr)})
+        super().on_epoch_end(epoch, logs)
 
 
 def recall_m(y_true, y_pred):
@@ -48,7 +58,7 @@ if __name__ == "__main__":
 
     
     # input_shape = (16, 7, 2048)
-    # input_shape = (8, 9, 2048)
+    input_shape = (8, 9, 2048)
     if not use_resnet:
         input_shape = spectrogram_dim + (1,)
 
@@ -80,12 +90,18 @@ if __name__ == "__main__":
     print("trainable count:", len(model.trainable_variables))
     optimizer = keras.optimizers.Adam(
         learning_rate=args.lr,
+        # decay=1e-2,
     )
 
-    model.compile(loss="categorical_crossentropy", optimizer=optimizer,
+    model.compile(loss="binary_crossentropy", optimizer=optimizer,
                   metrics=[keras.metrics.CategoricalAccuracy(), f1_m, precision_m, recall_m])
 
-    model.fit(data_generator, epochs=args.epochs, workers=args.workers)
+    reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.2,
+                                  patience=5, min_lr=1e-9)
+
+    tensorboard_callback = LRTensorBoard(log_dir="logs")
+
+    model.fit(data_generator, callbacks=[reduce_lr, tensorboard_callback], epochs=args.epochs, workers=args.workers)
     model.save("models/baseline")
 
     model = keras.models.load_model("models/baseline",
