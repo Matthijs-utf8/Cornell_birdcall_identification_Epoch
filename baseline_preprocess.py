@@ -18,6 +18,9 @@ window_size = 440
 universal_sample_rate = 22000
 spectrogram_slices_per_input = universal_sample_rate * 5 // window_size # = 5 seconds
 
+gpu_devices = tf.config.experimental.list_physical_devices('GPU')
+tf.config.experimental.set_memory_growth(gpu_devices[0], True)
+
 def preprocess(file_path, feature_extractor: keras.models.Model):
     """
     Loads the audio file, generates a spectrogram, and applies feature_extractor on it
@@ -100,7 +103,7 @@ if __name__ == "__main__":
                 fragments = tf_fourier(path_to_birdsound_dir + file_name)
 
             for fragment in fragments:
-                np.save(output_dir + "/" + birdcode + "_" + str(fragment_id), fragment)
+                np.savez_compressed(output_dir + "/" + birdcode + "_" + str(fragment_id), fragment)
                 fragment_id += 1
 
 

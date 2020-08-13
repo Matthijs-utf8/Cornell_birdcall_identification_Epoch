@@ -1,11 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Jul  1 21:09:24 2020
-
-@author: Matthijs Schrage
-"""
-
-import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -28,7 +20,7 @@ def autocorr(x, t=1):
 	return np.corrcoef(np.array([x[:-t], x[t:]]))
 
 # Add the path of each file to the train.csv
-base_dir = data_reading.read_config() #os.path.join(os.path.expanduser("~"), "Downloads/birdsong-recognition/")
+base_dir = data_reading.read_config()
 df_train = pd.read_csv(base_dir + "train.csv")
 
 ####### !!!!!!!!!!!!!!! ##########
@@ -159,11 +151,9 @@ def get_noise_frames(samples, sampling_rate, window_width=2048, stepsize=512, ve
 	
 	return np.array(noisy_frames)
 
-def filter_sound(fullpath, verbose=False):
-	# Read in the audiofile with librosa.
-	samples, sampling_rate = librosa.load(fullpath)
+def filter_sound(samples, sampling_rate, window_width=2048, stepsize=512, verbose=False):
 	
-	noise = get_noise_frames(samples=samples, sampling_rate=sampling_rate, verbose=verbose)
+	noise = get_noise_frames(samples=samples, sampling_rate=sampling_rate, window_width=window_width, stepsize=stepsize, verbose=verbose)
 	
 	reduced_noise = nr.reduce_noise(audio_clip=samples, noise_clip=noise, verbose=verbose)
 	
@@ -181,7 +171,11 @@ def filter_sound(fullpath, verbose=False):
 		sd.play(reduced_noise, sampling_rate)
 		sd.wait()
 
-	return reduced_noise, sampling_rate
+	return reduced_noise
 
 if __name__ == "__main__":
-	filter_sound(df_train['full_path'][2], verbose=True)
+	
+	samples, sampling_rate = librosa.load(df_train["full_path"][3])
+	
+	filter_sound(samples, sampling_rate, verbose=True)
+

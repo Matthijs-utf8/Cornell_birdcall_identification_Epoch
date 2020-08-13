@@ -1,120 +1,137 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Jul 30 12:36:59 2020
-
-@author: Matthijs Schrage
-"""
-
-import os
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import librosa
-import sklearn
 import random
 import warnings
 import sounddevice as sd
-import noisereduce as nr
-import re
-
-random.seed(4)
+import data_reading
+import birdcodes
+import scipy
 
 # A function that prevents warnings when loading in files with librosa
 warnings.simplefilter("ignore")
 
 # Add the path of each file to the train.csv
-base_dir = os.path.join(os.path.expanduser("~"), "Downloads/birdsong-recognition/")
+base_dir = data_reading.read_config()
 df_train = pd.read_csv(base_dir + "train.csv")
 
-# Make a place in memory where we store all the different species
-all_ebird_codes = list( set( df_train.ebird_code.tolist() ) )
+####### !!!!!!!!!!!!!!! ##########
+####### Run these two lines below once if you've never run this file before. It adds a filepath to each file in train.csv #########
+# df_train['full_path'] = base_dir + "train_audio/" + df_train['ebird_code'] + '/' + df_train['filename']
+# df_train.to_csv(base_dir + "train.csv")
 
-""" A function for adding files together. Only one method now, but we should have mroe than one to see what works best."""
-def add_files(files, method="add_to_shortest"):
-	
-	# Get the number of files
-	nr_of_files = len(files)
-	
-	# Add a random sample of the longer files to the shortest one
-	if method == "add_to_shortest":
-		
-		# Get the lentgths of the file, the new file will be the length of the shortest file
-		lengths = [len(files[n]) for n in range(nr_of_files)]
-		shortest = np.min(lengths)
-		
-		# Initialise new file
-		new_file = np.zeros(shortest,)
-		
-		# Add the files together. Choose a random point in the longer files to add to the shortest one.
-		for file in files:
-			random_number = random.randint(0, len(file)-shortest)
-			new_file += file[random_number:random_number+shortest]
-	
-	else:
-		raise ValueError("Method '{}' does not exist".format(method))
-	
-	return new_file
 
-""" Takes in a part of the metadata and returns a random choice of n loaded files. """
-def pick_and_read_random_file(dataframe, nr_of_files):
+""" Takes in the full df_train and outputs a dataframe with only 1 randomly choosen entry from a specified metric
+EXAMPLE: let's say metrics=['country'] --> it chooses only files from the randomly choosen country of Potugal."""
+def filter_metadata_by_metrics(dataframe, metrics=[], nr_of_files=2):
 	
-	# Pick random files
-	random_metadata = dataframe.sample(n=nr_of_files)
-	paths = random_metadata["full_path"]
+	# A list of all the possible metrics to sort by.
+	possible_metrics = ['rating', 'playback_used', 'channels',
+					    'pitch', 'speed', 'species', 'number_of_notes', 
+					    'bird_seen', 'sampling_rate', 'type',
+					    'volume', 'country', 'length']
 	
-	print("Files picked:\n" + str(random_metadata[["ebird_code", "filename"]]))
+	# Copy the original dataframe so we can work with it safely
+	dataframe = dataframe
 	
-	# Read the files
-	random_files = np.array([librosa.load(path)[0] for path in paths])
-	
-	return random_files
-
-""" A function for selecting files based on certain metrics"""
-def select_files(nr_of_files, metric="random"):
-	
-	#Get a sampling rate to choose from. We can only add files together with the same sampling rate (if we don't want to resample)
-	random_sr = random.choice( list( set( df_train['sampling_rate'] ) ) )
-	
-	# Define a dataframe from df_train with only 1 type of sampling rate
-	df = df_train[df_train['sampling_rate'] == random_sr]
-	
-	if metric == "random":
+	# Pick files from the metadata randomly by the specified metrics
+	for metric in metrics:
 		
-		random_files = pick_and_read_random_file(dataframe=df, nr_of_files=nr_of_files)
-		
-		new_file = add_files(random_files)
-		
-		#Play the new file
-		sd.play(new_file, int(re.findall("[0-9]{2,}", random_sr)[0]))
-	
-	elif metric == "country":
-		
-		# Define a dataframe from df with only 1 country
-		random_country = random.choice( list( set( df['country'] ) ) )
-		df = df[df['country'] == random_country]
-		
-		random_files = pick_and_read_random_file(dataframe=df, nr_of_files=nr_of_files)
-		
-		new_file = add_files(random_files)
-		
-		#Play the new file
-		sd.play(new_file, int(re.findall("[0-9]{2,}", random_sr)[0]))
-	
-	elif metric == "location":
-		
-		# Define a dataframe from df with only 1 location
-		random_location = random.choice( list( set( df_train['location'] ) ) )
-		df = df[df['location'] == random_location]
-		
-		random_files = pick_and_read_random_file(dataframe=df, nr_of_files=nr_of_files)
-		
-		new_file = add_files(random_files)
-		
-		#Play the new file
-		sd.play(new_file, int(re.findall("[0-9]{2,}", random_sr)[0] ) )
-		
-	else:
-		
-		raise ValueError("Metric '{}' does not exist".format(metric))
+		# Create a while loop that only ends if we find a collection of metadata longer than the nr_of_files
+		go_on = False
+		loops = 0
+		while go_on == False:
 			
-select_files(4, metric="country")
+			loops += 1
+			
+			# Pick a random value from the metric (If it is 'country', pick from: Portugal, Canada, Sweden, etc...)
+			random_pick = random.choice( list( df_train[metric] ) )
+			
+			# If the metadata has enough files to choose from
+			if dataframe[dataframe[metric] == random_pick].shape[0] > nr_of_files:
+				
+				print("Randomly picked {}".format(random_pick) )
+				
+				# Redefine the dataframe to contain only the instances from the randomly picked metric
+				dataframe = dataframe[dataframe[metric] == random_pick]
+				
+				go_on = True
+			
+			# If the loop goes on for too long, just skip the current metric
+			if loops >= 1000:
+				
+				print("No combinations possible between {} and {}".format(metrics[0], metrics[1:]))
+				
+				go_on = True
+			
+	return dataframe
+
+
+""" Takes in (any part of the) metadata and returns a random choice of n rows. """
+def pick_files_at_random(dataframe, nr_of_files=2):
+
+	# Check if there ae enough files available to choose from
+	if dataframe.shape[0] < nr_of_files:
+		raise ValueError("Can't choose {} files from {} samples.".format(nr_of_files, dataframe.shape[0]))
+	
+	# Pick random files from selection
+	else:
+		
+		random_metadata = dataframe.sample(n=nr_of_files)
+		print("Files picked:\n" + str(random_metadata[["ebird_code", "filename"]]))
+		return random_metadata
+	
+	
+""" Takes in one or more rows of the metadata and returns the corresponding soundfiles as numpy arrays. """
+def combine_files(files, universal_sr=22050, seconds=5):
+	
+	# Get the labels that accompany the combined sounds
+	labels = [birdcodes.bird_code.get(file) for file in files["ebird_code"]]
+	
+	# Initiate an array of zeros
+	combined_sounds = np.zeros(universal_sr * seconds,)
+	
+	for file in files["full_path"]:
+		
+		# Load the samples
+		samples, sampling_rate = librosa.load(file)
+		
+		# Resample the samples to a universal sampling rate
+		if sampling_rate != universal_sr:
+			
+			# Resample with Scipy
+			samples, sampling_rate = scipy.signal.resample(x=samples, num=int( universal_sr * (len(samples)/sampling_rate) ) ), universal_sr
+			
+			print("Sound has been resampled to {} Hz".format(universal_sr))
+			
+		# If the file length is shorter than the specified number of seconds that we want, pad the file with zeros to the correct length
+		if len(samples) < universal_sr * seconds:
+			
+			print("Sound got padded with zeros from {} seconds to {} seconds".format(round(len(samples)/sampling_rate, 3), seconds))
+			
+			samples = np.pad(samples, (0, (universal_sr * seconds)-len(samples)))
+			
+			# Add the file to the combined sounds
+			combined_sounds += samples
+		
+		# Else, we take a random point in the file and add the next (5) seconds to the combined sounds
+		else:
+			
+			# Pick a random number (that is not less than 5 seconds near the end of the sound)
+			random_starting_sample = random.randint(0, len(samples) - universal_sr * seconds)
+			
+			# Add the sounds in the time domain
+			combined_sounds += samples[random_starting_sample:random_starting_sample + universal_sr * seconds]
+	
+	# Play the combined sounds
+	sd.play(combined_sounds, sampling_rate)
+	sd.wait()
+	
+	return combined_sounds, labels
+
+
+
+
+if __name__ == "__main__":
+	
+	pass
