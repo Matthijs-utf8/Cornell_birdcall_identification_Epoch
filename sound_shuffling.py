@@ -5,6 +5,7 @@ import random
 import warnings
 import sounddevice as sd
 import data_reading
+import birdcodes
 import scipy
 
 # A function that prevents warnings when loading in files with librosa
@@ -98,6 +99,16 @@ class Add_birdsounds():
 			return random_metadata
 	
 	
+	def amplitude_shift(self, sound):
+		
+		return sound
+	
+	
+	def frequency_shift(self, sound):
+		
+		return sound
+	
+	
 	""" Takes in one or more rows of the metadata and returns the corresponding soundfiles as numpy arrays. """
 	def get_sounds(self):
 		
@@ -106,6 +117,9 @@ class Add_birdsounds():
 		
 		# Pick a number of specified files from the filtered dataframe
 		files = self.pick_files_at_random(dataframe)
+		
+		# Get the labels that accompany the combined sounds
+		labels = [birdcodes.bird_code.get(file) for file in files["ebird_code"]]
 		
 		# Initiate an array of zeros
 		combined_sounds = np.zeros(self.universal_sr * self.seconds,)
@@ -148,7 +162,9 @@ class Add_birdsounds():
 		sd.play(combined_sounds, sampling_rate)
 		sd.wait()
 		
-		return combined_sounds
+		return combined_sounds, labels
+	
+	
 
 
 
@@ -159,7 +175,7 @@ class Add_birdsounds():
 
 if __name__ == "__main__":
 	
-	add_birdsounds = Add_birdsounds(df_train, metrics=["species", "type"], universal_sr=22050, nr_of_files=2, seconds=5)
+	add_birdsounds = Add_birdsounds(df_train, metrics=[], universal_sr=22050, nr_of_files=4, seconds=5)
 	
 	
 	for n in range(3):
