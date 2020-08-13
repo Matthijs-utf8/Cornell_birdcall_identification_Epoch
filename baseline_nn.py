@@ -35,31 +35,45 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", default=50, type=int, help="Number of epochs to train for")
     parser.add_argument("--batch-size", default=512, type=int, help="Training batch size")
     parser.add_argument("--workers", default=4, type=int, help="Number of dataloader workers")
+    parser.add_argument("--feature_mode", default="spectrogram", type=str, help="Possible values: 'spectrogram' or 'resnet'")
 
     args = parser.parse_args()
 
     np.random.seed(args.seed)
+    use_resnet = args.feature_mode == "resnet"
 
     spectrogram_dim = (250, 257)
 
-    input_shape = (16, 7, 2048)
-    # input_shape = spectrogram_dim + (1,)
+    
+    # input_shape = (16, 7, 2048)
+    # input_shape = (8, 9, 2048)
+    if not use_resnet:
+        input_shape = spectrogram_dim + (1,)
 
 
-    # data_generator = dataloader.DataGenerator("spectrograms", batch_size=args.batch_size, dim=input_shape)
-    data_generator = dataloader.DataGenerator("preprocessed2", batch_size=args.batch_size, dim=input_shape)
+    if not use_resnet:
+        data_generator = dataloader.DataGenerator("spectrograms", batch_size=args.batch_size, dim=input_shape)
+    else:
+        data_generator = dataloader.DataGenerator("preprocessed2", batch_size=args.batch_size, dim=input_shape)
+    
     print("len =", len(bird_code))
 
-    model = keras.models.Sequential([
-        # keras.Input(input_shape), # shape=(16, 9, 2048)
-        layers.Conv2D(16, (5, 5), activation='relu', input_shape=input_shape),
-        layers.MaxPool2D(),
-        layers.Conv2D(16, (5, 5), activation='relu'),
-        layers.MaxPool2D(),
-        layers.Conv2D(16, (5, 5), activation='relu'),
-        layers.Flatten(),
-        layers.Dense(len(bird_code), activation="sigmoid"),
-    ])
+    if not use_resnet:
+        model = keras.models.Sequential([
+            layers.Conv2D(16, (5, 5), activation='relu', input_shape=input_shape),
+            layers.MaxPool2D(),
+            layers.Conv2D(16, (5, 5), activation='relu'),
+            layers.MaxPool2D(),
+            layers.Conv2D(16, (5, 5), activation='relu'),
+            layers.Flatten(),
+            layers.Dense(len(bird_code), activation="sigmoid"),
+        ])
+    else:
+        model = kears = keras.models.Sequential([
+            layers.GlobalMaxPool2D(input_shape=input_shape),
+            layers.Dense(1024),
+            layers.Dense(len(bird_code)),
+        ])
 
     print("trainable count:", len(model.trainable_variables))
     optimizer = keras.optimizers.Adam(

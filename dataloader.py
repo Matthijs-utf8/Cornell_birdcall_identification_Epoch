@@ -61,9 +61,12 @@ class DataGenerator(keras.utils.Sequence):
             try:
                 data = np.load(file)
             except ValueError as e:
-                raise ValueError("Malformed numpy file:" + file) from e
-
-            X[i,] = np.reshape(data, self.dim)
+                raise ValueError("Malformed numpy file: " + file) from e
+            
+            try:
+                X[i,] = np.reshape(data, self.dim)
+            except ValueError as e:
+                raise ValueError("Cannot reshape data from file: " + file + ", with shape: " + str(data.shape)) from e
 
             # Store class
             bird_name = file.split("/")[-1].split("_")[0]

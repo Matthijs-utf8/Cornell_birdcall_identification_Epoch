@@ -12,6 +12,7 @@ from matplotlib import pyplot as plt
 
 from Noise_Extractor import filter_sound, get_frames
 import data_reading
+import argparse
 
 window_size = 440
 universal_sample_rate = 22000
@@ -62,27 +63,41 @@ def tf_fourier(file_path):
     return slices
 
 spectrogram_shape = (250, 257)
-resnet: keras.models.Model = ResNet50(input_shape=(spectrogram_shape + (3,)), include_top=False)
 
 if __name__ == "__main__":
     import sys
     import os
 
-    output_dir = "preprocessed2"
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--feature_mode", default="spectrogram", type=str, help="Possible values: 'spectrogram' or 'resnet'")
+    parser.add_argument("--dir", default="preprocessed2", type=str, help="Where to place the preprocessed files")
+    parser.add_argument("-b", "--bird_codes", nargs="+", type=str, help="List of birdcodes indicating which files need to be processed")
+    args = parser.parse_args()
+    
+    output_dir = args.dir
+    use_resnet = args.feature_mode == "resnet"
+
+    print(args.bird_codes)    
+
+    if use_resnet:
+        resnet: keras.models.Model = ResNet50(input_shape=(spectrogram_shape + (3,)), include_top=False)
     
     # Create output_dir if it doesn't exist yet
     if not os.path.isdir(output_dir):
         os.mkdir(output_dir)
 
     # Process all files based on the birdcodes in the arguments
-    for birdcode in sys.argv[1:]:
+    for birdcode in args.bird_codes:
         print(birdcode)
 
         fragment_id = 0   # A unique identifier for each slice of 5 seconds
         path_to_birdsound_dir = data_reading.test_data_base_dir + "train_audio/" + birdcode + "/"
 
         for file_name in tqdm(os.listdir(path_to_birdsound_dir)):
-            fragments = preprocess(path_to_birdsound_dir + file_name, resnet)
+            if use_resnet:
+                fragments = preprocess(path_to_birdsound_dir + file_name, resnet)
+            else:
+                fragments = tf_fourier(path_to_birdsound_dir + file_name)
 
             for fragment in fragments:
                 np.save(output_dir + "/" + birdcode + "_" + str(fragment_id), fragment)
