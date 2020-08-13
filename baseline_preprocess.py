@@ -14,6 +14,8 @@ from Noise_Extractor import filter_sound, get_frames
 import data_reading
 import argparse
 
+from birdcodes import bird_code
+
 window_size = 440
 universal_sample_rate = 22000
 spectrogram_slices_per_input = universal_sample_rate * 5 // window_size # = 5 seconds
@@ -74,7 +76,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--feature_mode", default="spectrogram", type=str, help="Possible values: 'spectrogram' or 'resnet'")
     parser.add_argument("--dir", default="preprocessed2", type=str, help="Where to place the preprocessed files")
-    parser.add_argument("-b", "--bird_codes", nargs="+", type=str, help="List of birdcodes indicating which files need to be processed")
+    parser.add_argument("-b", "--bird_codes", nargs="*", default=[], type=str, help="List of birdcodes indicating which files need to be processed")
     args = parser.parse_args()
     
     output_dir = args.dir
@@ -90,7 +92,11 @@ if __name__ == "__main__":
         os.mkdir(output_dir)
 
     # Process all files based on the birdcodes in the arguments
+    if args.bird_codes == []:
+        args.bird_codes = bird_code.keys()
+
     for birdcode in args.bird_codes:
+        print("Processing")
         print(birdcode)
 
         fragment_id = 0   # A unique identifier for each slice of 5 seconds
