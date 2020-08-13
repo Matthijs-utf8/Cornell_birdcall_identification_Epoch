@@ -151,12 +151,9 @@ def get_noise_frames(samples, sampling_rate, window_width=2048, stepsize=512, ve
 	
 	return np.array(noisy_frames)
 
-def filter_sound(fullpath, verbose=False):
+def filter_sound(samples, sampling_rate, window_width=2048, stepsize=512, verbose=False):
 	
-	# Read in the audiofile with librosa.
-	samples, sampling_rate = librosa.load(fullpath)
-	
-	noise = get_noise_frames(samples=samples, sampling_rate=sampling_rate, verbose=verbose)
+	noise = get_noise_frames(samples=samples, sampling_rate=sampling_rate, window_width=window_width, stepsize=stepsize, verbose=verbose)
 	
 	reduced_noise = nr.reduce_noise(audio_clip=samples, noise_clip=noise, verbose=verbose)
 	
@@ -174,8 +171,11 @@ def filter_sound(fullpath, verbose=False):
 		sd.play(reduced_noise, sampling_rate)
 		sd.wait()
 
-	return reduced_noise, sampling_rate
+	return reduced_noise
 
 if __name__ == "__main__":
-	filter_sound(df_train["full_path"][3], verbose=True)
+	
+	samples, sampling_rate = librosa.load(df_train["full_path"][3])
+	
+	filter_sound(samples, sampling_rate, verbose=True)
 
