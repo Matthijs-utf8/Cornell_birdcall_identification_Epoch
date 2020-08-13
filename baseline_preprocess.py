@@ -118,10 +118,12 @@ if __name__ == "__main__":
     N_PROCESSES = 12
 
     processes = []
-    for sublist in np.array_split(args.bird_codes, N_PROCESSES):
+    for i, sublist in enumerate(np.array_split(args.bird_codes, N_PROCESSES)):
         p = Process(target=process_birdnames, args=(sublist,))
         p.start()
         processes.append(p)
+        print("Started thread", i)
+
 
     for p in processes:
         p.join()
