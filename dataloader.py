@@ -1,3 +1,4 @@
+import copy
 import glob
 import threading
 
@@ -21,6 +22,8 @@ class DataGenerator(keras.utils.Sequence):
         self.shuffle = shuffle
 
         self.data_root = data_root
+
+        # Note: if split into training and test sets, these may not  be the same shape
         self.files = glob.glob(f"{data_root}/*")
         self.indexes = np.arange(len(self.files))
 
@@ -28,7 +31,7 @@ class DataGenerator(keras.utils.Sequence):
 
     def __len__(self):
         'Denotes the number of batches per epoch'
-        return int(np.floor(len(self.files) / self.batch_size))
+        return int(np.floor(len(self.indexes) / self.batch_size))
 
     def __getitem__(self, index):
         'Generate one batch of data'
@@ -80,7 +83,17 @@ class DataGenerator(keras.utils.Sequence):
             # Store class
             bird_name = file.split("/")[-1].split("_")[0]
             y[i, bird_code[bird_name]] = 1
-        return X, y  # keras.utils.to_categorical(y, num_classes=len(bird_code))
+        return X, y
+
+    def split(self, factor=0.1):
+        """ Split into training and validation sets, probably very not thread safe """
+        split = int(len(self.indexes) * (1 - factor))
+        train_indices, test_indices = self.indexes[:split], self.indexes[split:]
+        test = copy.deepcopy(self)
+
+        self.indexes = train_indices
+        test.indexes = test_indices
+        return self, test
 
 
 def compute_overlap(x1, y1, x2, y2):
@@ -157,7 +170,7 @@ class DataGeneratorTestset(keras.utils.Sequence):
 
         if self.use_resnet:
             self.X = np.concatenate(self.X)  # concat from (32, 1, 16, 7, 2048) to (32, 16, 7, 2048)
-        self.X = np.array(X)
+        self.X = np.array(self.X)
         self.y = np.array(self.y)
 
 
