@@ -1,7 +1,6 @@
 import argparse
 import numpy as np
 
-import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import backend as K
 from tensorflow.keras.callbacks import TensorBoard
@@ -71,36 +70,31 @@ if __name__ == "__main__":
     
     print("len =", len(bird_code))
 
-    strategy = tf.distribute.MirroredStrategy()
-    print('Number of devices: {}'.format(strategy.num_replicas_in_sync))
+    if not use_resnet:
+        model = keras.models.Sequential([
+            layers.Conv2D(16, (5, 5), activation='relu', input_shape=input_shape),
+            layers.MaxPool2D(),
+            layers.Conv2D(16, (5, 5), activation='relu'),
+            layers.MaxPool2D(),
+            layers.Conv2D(16, (5, 5), activation='relu'),
+            layers.Flatten(),
+            layers.Dense(len(bird_code), activation="sigmoid"),
+        ])
+    else:
+        model = kears = keras.models.Sequential([
+            layers.GlobalMaxPool2D(input_shape=input_shape),
+            layers.Dense(1024),
+            layers.Dense(len(bird_code)),
+        ])
 
-    with strategy.scope():
+    print("trainable count:", len(model.trainable_variables))
+    optimizer = keras.optimizers.Adam(
+        learning_rate=args.lr,
+        # decay=1e-2,
+    )
 
-        if not use_resnet:
-            model = keras.models.Sequential([
-                layers.Conv2D(16, (5, 5), activation='relu', input_shape=input_shape),
-                layers.MaxPool2D(),
-                layers.Conv2D(16, (5, 5), activation='relu'),
-                layers.MaxPool2D(),
-                layers.Conv2D(16, (5, 5), activation='relu'),
-                layers.Flatten(),
-                layers.Dense(len(bird_code), activation="sigmoid"),
-            ])
-        else:
-            model = kears = keras.models.Sequential([
-                layers.GlobalMaxPool2D(input_shape=input_shape),
-                layers.Dense(1024),
-                layers.Dense(len(bird_code)),
-            ])
-
-        print("trainable count:", len(model.trainable_variables))
-        optimizer = keras.optimizers.Adam(
-            learning_rate=args.lr,
-            # decay=1e-2,
-        )
-
-        model.compile(loss="binary_crossentropy", optimizer=optimizer,
-                      metrics=[keras.metrics.CategoricalAccuracy(), f1_m, precision_m, recall_m])
+    model.compile(loss="binary_crossentropy", optimizer=optimizer,
+                  metrics=[keras.metrics.CategoricalAccuracy(), f1_m, precision_m, recall_m])
 
     reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.2,
                                   patience=5, cooldown=5, min_lr=1e-9)
@@ -108,10 +102,8 @@ if __name__ == "__main__":
     tensorboard_callback = LRTensorBoard(log_dir="logs")
 
     save_best_callback = keras.callbacks.ModelCheckpoint(filepath='model.{epoch:02d}.h5', save_best_only=True)
-    callback = keras.callbacks.EarlyStopping(monitor='loss', patience=3)
 
-
-    model.fit(data_generator, callbacks=[reduce_lr, tensorboard_callback, save_best_callback, callback], epochs=args.epochs, workers=args.workers)
+    model.fit(data_generator, callbacks=[reduce_lr, tensorboard_callback, save_best_callback], epochs=args.epochs, workers=args.workers)
     model.save("models/baseline")
 
     model = keras.models.load_model("models/baseline",
