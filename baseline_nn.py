@@ -49,70 +49,72 @@ if __name__ == "__main__":
     parser.add_argument("--batch-size", default=512, type=int, help="Training batch size")
     parser.add_argument("--workers", default=4, type=int, help="Number of dataloader workers")
     parser.add_argument("--feature_mode", default="spectrogram", type=str, help="Possible values: 'spectrogram' or 'resnet'")
+    parser.add_argument("--eval-only", action="store_true", help="Do not train")
 
     args = parser.parse_args()
 
-    np.random.seed(args.seed)
-    use_resnet = args.feature_mode == "resnet"
+    if not args.eval_only:
+        np.random.seed(args.seed)
+        use_resnet = args.feature_mode == "resnet"
 
-    spectrogram_dim = (250, 257)
-
-    
-    # input_shape = (16, 7, 2048)
-    input_shape = (8, 9, 2048)
-    if not use_resnet:
-        input_shape = spectrogram_dim + (1,)
+        spectrogram_dim = (250, 257)
 
 
-    if not use_resnet:
-        data_generator = dataloader.DataGenerator("spectrograms", batch_size=args.batch_size, dim=input_shape)
-    else:
-        data_generator = dataloader.DataGenerator("preprocessed2", batch_size=args.batch_size, dim=input_shape)
-    
-    print("len =", len(bird_code))
+        # input_shape = (16, 7, 2048)
+        input_shape = (8, 9, 2048)
+        if not use_resnet:
+            input_shape = spectrogram_dim + (1,)
 
-    strategy = tf.distribute.MirroredStrategy()
-    print('Number of devices: {}'.format(strategy.num_replicas_in_sync))
-
-    with strategy.scope():
 
         if not use_resnet:
-            model = keras.models.Sequential([
-                layers.Conv2D(16, (5, 5), activation='relu', input_shape=input_shape),
-                layers.MaxPool2D(),
-                layers.Conv2D(16, (5, 5), activation='relu'),
-                layers.MaxPool2D(),
-                layers.Conv2D(16, (5, 5), activation='relu'),
-                layers.Flatten(),
-                layers.Dense(len(bird_code), activation="sigmoid"),
-            ])
+            data_generator = dataloader.DataGenerator("spectrograms", batch_size=args.batch_size, dim=input_shape)
         else:
-            model = kears = keras.models.Sequential([
-                layers.GlobalMaxPool2D(input_shape=input_shape),
-                layers.Dense(1024),
-                layers.Dense(len(bird_code)),
-            ])
+            data_generator = dataloader.DataGenerator("preprocessed2", batch_size=args.batch_size, dim=input_shape)
 
-        print("trainable count:", len(model.trainable_variables))
-        optimizer = keras.optimizers.Adam(
-            learning_rate=args.lr,
-            # decay=1e-2,
-        )
+        print("len =", len(bird_code))
 
-        model.compile(loss="binary_crossentropy", optimizer=optimizer,
-                      metrics=[keras.metrics.CategoricalAccuracy(), f1_m, precision_m, recall_m])
+        strategy = tf.distribute.MirroredStrategy()
+        print('Number of devices: {}'.format(strategy.num_replicas_in_sync))
 
-    reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.2,
-                                  patience=5, cooldown=5, min_lr=1e-9)
+        with strategy.scope():
 
-    tensorboard_callback = LRTensorBoard(log_dir="logs")
+            if not use_resnet:
+                model = keras.models.Sequential([
+                    layers.Conv2D(16, (5, 5), activation='relu', input_shape=input_shape),
+                    layers.MaxPool2D(),
+                    layers.Conv2D(16, (5, 5), activation='relu'),
+                    layers.MaxPool2D(),
+                    layers.Conv2D(16, (5, 5), activation='relu'),
+                    layers.Flatten(),
+                    layers.Dense(len(bird_code), activation="sigmoid"),
+                ])
+            else:
+                model = kears = keras.models.Sequential([
+                    layers.GlobalMaxPool2D(input_shape=input_shape),
+                    layers.Dense(1024),
+                    layers.Dense(len(bird_code)),
+                ])
 
-    save_best_callback = keras.callbacks.ModelCheckpoint(filepath='model.{epoch:02d}.h5', save_best_only=True)
-    callback = keras.callbacks.EarlyStopping(monitor='loss', patience=3)
+            print("trainable count:", len(model.trainable_variables))
+            optimizer = keras.optimizers.Adam(
+                learning_rate=args.lr,
+                # decay=1e-2,
+            )
+
+            model.compile(loss="binary_crossentropy", optimizer=optimizer,
+                          metrics=[keras.metrics.CategoricalAccuracy(), f1_m, precision_m, recall_m])
+
+        reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.2,
+                                      patience=5, cooldown=5, min_lr=1e-9)
+
+        tensorboard_callback = LRTensorBoard(log_dir="logs")
+
+        save_best_callback = keras.callbacks.ModelCheckpoint(filepath='model.{epoch:02d}.h5', save_best_only=True)
+        callback = keras.callbacks.EarlyStopping(monitor='loss', patience=3)
 
 
-    model.fit(data_generator, callbacks=[reduce_lr, tensorboard_callback, save_best_callback, callback], epochs=args.epochs, workers=args.workers)
-    model.save("models/baseline")
+        model.fit(data_generator, callbacks=[reduce_lr, tensorboard_callback, save_best_callback, callback], epochs=args.epochs, workers=args.workers)
+        model.save("models/baseline")
 
     model = keras.models.load_model("models/baseline",
                                     custom_objects={'recall_m': recall_m, 'precision_m': precision_m, 'f1_m': f1_m})
