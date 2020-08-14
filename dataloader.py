@@ -7,7 +7,7 @@ import pandas as pd
 from tensorflow.python.keras.applications.resnet import ResNet50
 
 import data_reading
-from baseline_preprocess import preprocess, spectrogram_shape
+from baseline_preprocess import preprocess, spectrogram_shape, tf_fourier
 from birdcodes import bird_code
 
 
@@ -99,7 +99,7 @@ LONG_OVERLAP_SECONDS = 2  # seconds
 class DataGeneratorTestset(keras.utils.Sequence):
     'Generates data for Keras'
 
-    def __init__(self, batch_size=32):
+    def __init__(self, batch_size=32, use_resnet=False):
         'Initialization'
         self.batch_size = batch_size
 
@@ -108,7 +108,9 @@ class DataGeneratorTestset(keras.utils.Sequence):
         self.labels = pd.read_csv(label_root)
         self.files = glob.glob(f"{data_root}/*")
 
-        self.resnet = ResNet50(input_shape=(spectrogram_shape + (3,)), include_top=False)
+        self.use_resnet = use_resnet
+        if use_resnet:
+            self.resnet = ResNet50(input_shape=(spectrogram_shape + (3,)), include_top=False)
 
         self.__data_generation()
 
@@ -128,7 +130,10 @@ class DataGeneratorTestset(keras.utils.Sequence):
 
         for file in self.files:
             file_id = file.split("/")[-1].split("_")[0]
-            fragments = preprocess(file, self.resnet)
+            if self.use_resnet:
+                fragments = preprocess(file, self.resnet)
+            else:
+                fragments = tf_fourier(file)
 
             for i, fragment in enumerate(fragments):
                 t_start, t_end = i * 5, i * 5 + 5
