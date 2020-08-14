@@ -142,12 +142,9 @@ class DataGeneratorTestset(keras.utils.Sequence):
                 rows_file = self.labels["filename"] == file_id
                 rows_time = self.labels["seconds"] == t_end
                 detected_birds_ecodes = self.labels.loc[rows_file & rows_time]['birds']
-                print("detected_birds_ecodes", detected_birds_ecodes)
-                if len(detected_birds_ecodes) != 1:
-                    print("Debug:", detected_birds_ecodes)
-                    raise ValueError("Multiple entries for time segment in test audio summary csv file")
+
                 assert len(
-                    detected_birds_ecodes) == 1, "Multiple entries for time segment in test audio summary csv file"
+                    detected_birds_ecodes) <= 1, "Multiple entries for time segment in test audio summary csv file"
 
                 detected_birds_ecodes = detected_birds_ecodes.iloc[0].split(" ")
                 detected_birds = {bird_code.get(x, None) for x in detected_birds_ecodes}
