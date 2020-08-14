@@ -97,11 +97,13 @@ if __name__ == "__main__":
                   metrics=[keras.metrics.CategoricalAccuracy(), f1_m, precision_m, recall_m])
 
     reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.2,
-                                  patience=5, min_lr=1e-9)
+                                  patience=5, cooldown=5, min_lr=1e-9)
 
     tensorboard_callback = LRTensorBoard(log_dir="logs")
 
-    model.fit(data_generator, callbacks=[reduce_lr, tensorboard_callback], epochs=args.epochs, workers=args.workers)
+    save_best_callback = keras.callbacks.ModelCheckpoint(filepath='model.{epoch:02d}.h5', save_best_only=True)
+
+    model.fit(data_generator, callbacks=[reduce_lr, tensorboard_callback, save_best_callback], epochs=args.epochs, workers=args.workers)
     model.save("models/baseline")
 
     model = keras.models.load_model("models/baseline",
