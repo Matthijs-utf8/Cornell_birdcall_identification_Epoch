@@ -60,7 +60,6 @@ class DataGenerator(keras.utils.Sequence):
         for i, file in enumerate(files_temp):
             # Store sample
 
-
             try:
                 data = np.load(file)
                 # compressed files are stored as dict
@@ -72,7 +71,7 @@ class DataGenerator(keras.utils.Sequence):
 
             except ValueError as e:
                 raise ValueError("Malformed numpy file: " + file) from e
-            
+
             try:
                 X[i,] = np.reshape(data, self.dim)
             except ValueError as e:
@@ -134,6 +133,8 @@ class DataGeneratorTestset(keras.utils.Sequence):
                 fragments = preprocess(file, self.resnet)
             else:
                 fragments = tf_fourier(file)
+                # shape (?, 250, 257) -> (?, 250, 257, 1) aka add channel
+                fragments = fragments[:, :, :, np.newaxis]
 
             for i, fragment in enumerate(fragments):
                 t_start, t_end = i * 5, i * 5 + 5
@@ -145,16 +146,18 @@ class DataGeneratorTestset(keras.utils.Sequence):
 
                 assert len(
                     detected_birds_ecodes) <= 1, "Multiple entries for time segment in test audio summary csv file"
-                if len(detected_birds_ecodes):
+                try:
                     detected_birds_ecodes = detected_birds_ecodes.iloc[0].split(" ")
                     detected_birds = {bird_code.get(x, None) for x in detected_birds_ecodes}
-                else:
+                except:
                     detected_birds = {}
 
                 y = np.array([1 if i in detected_birds else 0 for i in bird_code.values()])
                 self.y.append(y)
 
-        self.X = np.concatenate(self.X)  # concat from (32, 1, 16, 7, 2048) to (32, 16, 7, 2048)
+        if self.use_resnet:
+            self.X = np.concatenate(self.X)  # concat from (32, 1, 16, 7, 2048) to (32, 16, 7, 2048)
+        self.X = np.array(X)
         self.y = np.array(self.y)
 
 
