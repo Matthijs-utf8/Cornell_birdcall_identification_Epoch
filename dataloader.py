@@ -145,9 +145,11 @@ class DataGeneratorTestset(keras.utils.Sequence):
 
                 assert len(
                     detected_birds_ecodes) <= 1, "Multiple entries for time segment in test audio summary csv file"
-
-                detected_birds_ecodes = detected_birds_ecodes.iloc[0].split(" ")
-                detected_birds = {bird_code.get(x, None) for x in detected_birds_ecodes}
+                if len(detected_birds_ecodes):
+                    detected_birds_ecodes = detected_birds_ecodes.iloc[0].split(" ")
+                    detected_birds = {bird_code.get(x, None) for x in detected_birds_ecodes}
+                else:
+                    detected_birds = {}
 
                 y = np.array([1 if i in detected_birds else 0 for i in bird_code.values()])
                 self.y.append(y)
