@@ -131,10 +131,9 @@ def combine_files(files, universal_sr=22050, seconds=5):
 
 	return combined_sounds, labels
 
-""" Takes in a sound sample and returns the sound samples shifted in amplitude by n_steps."""
-def amplitude_shift(samples, n_steps, sampling_rate):
-	shifted_samples = librosa.effects.pitch_shift(samples,sampling_rate,n_steps=n_steps)
-	return shifted_samples
+""" Takes in a sound sample received from librosa.load and returns the sound samples shifted in amplitude by n_steps."""
+def amplitude_shift(samples, n_steps):
+	return samples*(n_steps)
 
 """ Visualizes the amplitude shift. Needs the original samples, sampling rate and shifted samples."""
 def plot_amplitude(original_samples, shifted_samples, sampling_rate):
@@ -149,22 +148,39 @@ def plot_amplitude(original_samples, shifted_samples, sampling_rate):
 
 	return
 
-"""Takes in the samples received from librosa.load and returns samples with noice"""
+"""Takes in the samples received from librosa.load and returns samples with noise"""
 def add_white_noise(samples, target_snr=2):
-	
+
 	#Calculate the root mean square of the samples
 	RMS_samples = np.sqrt(np.mean(samples ** 2))
-	
+
 	#Calculate the root mean square of the noise given a target SNR
 	RMS_noise = np.sqrt((RMS_samples ** 2) / 10 ** (target_snr / 10))
-	
+
 	#Generate Additive White Gaussian Noise
 	noise = np.random.normal(0, RMS_noise, samples.shape[0])
-	
+
 	#Add noise to samples
 	samples += noise
-	
+
 	return samples
+
+""" Takes in a sound sample and sampling rate received from librosa.load and returns the sound samples shifted in frequency (pitch) by n_steps."""
+def frequency_shift(samples, sampling_rate, n_steps):
+	shifted_samples = librosa.effects.pitch_shift(samples,sampling_rate,n_steps=n_steps)
+	return shifted_samples
+
+""" Visualizes the amplitude shift. """
+def plot_frequency(samples, shifted_samples, sampling_rate):
+	plt.magnitude_spectrum(samples, Fs=sampling_rate, label='Original')
+	plt.magnitude_spectrum(shifted_samples, Fs=sampling_rate, label='Shifted')
+	plt.legend()
+	plt.show()
+	return
+
+def time_stretch(samples, rate):
+	shifted_samples = librosa.effects.time_stretch(samples, rate=rate)
+	return shifted_samples
 
 if __name__ == "__main__":
 	pass
