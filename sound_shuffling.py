@@ -178,6 +178,7 @@ def plot_frequency(samples, shifted_samples, sampling_rate):
 	plt.show()
 	return
 
+""" Time stretches a sample by a given rate, returns time-stretched sample. """
 def time_stretch(samples, rate):
 	shifted_samples = librosa.effects.time_stretch(samples, rate=rate)
 	return shifted_samples
