@@ -1,10 +1,15 @@
+import copy
 import glob
+import threading
+
 import numpy as np
 from tensorflow import keras
 import pandas as pd
+from tensorflow.python.keras.applications.resnet import ResNet50
+from tqdm import tqdm
 
 import data_reading
-from baseline_preprocess import preprocess, resnet
+from baseline_preprocess import preprocess, spectrogram_shape, tf_fourier
 from birdcodes import bird_code
 
 
@@ -18,6 +23,8 @@ class DataGenerator(keras.utils.Sequence):
         self.shuffle = shuffle
 
         self.data_root = data_root
+
+        # Note: if split into training and test sets, these may not  be the same shape
         self.files = glob.glob(f"{data_root}/*")
         self.indexes = np.arange(len(self.files))
 
@@ -25,7 +32,7 @@ class DataGenerator(keras.utils.Sequence):
 
     def __len__(self):
         'Denotes the number of batches per epoch'
-        return int(np.floor(len(self.files) / self.batch_size))
+        return int(np.floor(len(self.indexes) / self.batch_size))
 
     def __getitem__(self, index):
         'Generate one batch of data'
@@ -57,12 +64,18 @@ class DataGenerator(keras.utils.Sequence):
         for i, file in enumerate(files_temp):
             # Store sample
 
-
             try:
                 data = np.load(file)
+                # compressed files are stored as dict
+                if type(data) == np.lib.npyio.NpzFile:
+                    data = data["arr_0"]
+
+                    # fix shape issue (250, 257) -> (250, 257, 1)
+                    data = data[:, :, np.newaxis]
+
             except ValueError as e:
                 raise ValueError("Malformed numpy file: " + file) from e
-            
+
             try:
                 X[i,] = np.reshape(data, self.dim)
             except ValueError as e:
@@ -71,7 +84,17 @@ class DataGenerator(keras.utils.Sequence):
             # Store class
             bird_name = file.split("/")[-1].split("_")[0]
             y[i, bird_code[bird_name]] = 1
-        return X, y  # keras.utils.to_categorical(y, num_classes=len(bird_code))
+        return X, y
+
+    def split(self, factor=0.1):
+        """ Split into training and validation sets, probably very not thread safe """
+        split = int(len(self.indexes) * (1 - factor))
+        train_indices, test_indices = self.indexes[:split], self.indexes[split:]
+        test = copy.deepcopy(self)
+
+        self.indexes = train_indices
+        test.indexes = test_indices
+        return self, test
 
 
 def compute_overlap(x1, y1, x2, y2):
@@ -89,7 +112,7 @@ LONG_OVERLAP_SECONDS = 2  # seconds
 class DataGeneratorTestset(keras.utils.Sequence):
     'Generates data for Keras'
 
-    def __init__(self, batch_size=32):
+    def __init__(self, batch_size=32, use_resnet=False):
         'Initialization'
         self.batch_size = batch_size
 
@@ -97,6 +120,10 @@ class DataGeneratorTestset(keras.utils.Sequence):
         label_root = data_reading.test_data_base_dir + "example_test_audio_summary.csv"
         self.labels = pd.read_csv(label_root)
         self.files = glob.glob(f"{data_root}/*")
+
+        self.use_resnet = use_resnet
+        if use_resnet:
+            self.resnet = ResNet50(input_shape=(spectrogram_shape + (3,)), include_top=False)
 
         self.__data_generation()
 
@@ -116,7 +143,12 @@ class DataGeneratorTestset(keras.utils.Sequence):
 
         for file in self.files:
             file_id = file.split("/")[-1].split("_")[0]
-            fragments = preprocess(file, resnet)
+            if self.use_resnet:
+                fragments = preprocess(file, self.resnet)
+            else:
+                fragments = tf_fourier(file, display=True)
+                # shape (?, 250, 257) -> (?, 250, 257, 1) aka add channel
+                fragments = fragments[:, :, :, np.newaxis]
 
             for i, fragment in enumerate(fragments):
                 t_start, t_end = i * 5, i * 5 + 5
@@ -125,24 +157,29 @@ class DataGeneratorTestset(keras.utils.Sequence):
                 rows_file = self.labels["filename"] == file_id
                 rows_time = self.labels["seconds"] == t_end
                 detected_birds_ecodes = self.labels.loc[rows_file & rows_time]['birds']
-                assert len(
-                    detected_birds_ecodes) == 1, "Multiple entries for time segment in test audio summary csv file"
 
-                detected_birds_ecodes = detected_birds_ecodes.iloc[0].split(" ")
-                detected_birds = {bird_code.get(x, None) for x in detected_birds_ecodes}
+                assert len(
+                    detected_birds_ecodes) <= 1, "Multiple entries for time segment in test audio summary csv file"
+                try:
+                    detected_birds_ecodes = detected_birds_ecodes.iloc[0].split(" ")
+                    detected_birds = {bird_code.get(x, None) for x in detected_birds_ecodes}
+                except:
+                    detected_birds = {}
 
                 y = np.array([1 if i in detected_birds else 0 for i in bird_code.values()])
                 self.y.append(y)
 
-        self.X = np.concatenate(self.X)  # concat from (32, 1, 16, 7, 2048) to (32, 16, 7, 2048)
+        if self.use_resnet:
+            self.X = np.concatenate(self.X)  # concat from (32, 1, 16, 7, 2048) to (32, 16, 7, 2048)
+        self.X = np.array(self.X)
         self.y = np.array(self.y)
 
 
 if __name__ == '__main__':
-    print("\nTRAIN\n")
-    d = DataGenerator("preprocessed")
-    X, y = d[0]
-    print(X.shape, y.shape)
+    # print("\nTRAIN\n")
+    # d = DataGenerator("preprocessed")
+    # X, y = d[0]
+    # print(X.shape, y.shape)
 
     print("\nTEST\n")
     d = DataGeneratorTestset()
