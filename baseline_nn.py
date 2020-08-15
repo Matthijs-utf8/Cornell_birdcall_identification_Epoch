@@ -56,7 +56,7 @@ if __name__ == "__main__":
     parser.add_argument("--lr", default=0.0001, type=float, help="Learning rate")
     parser.add_argument("--epochs", default=50, type=int, help="Number of epochs to train for")
     parser.add_argument("--batch-size", default=512, type=int, help="Training batch size")
-    parser.add_argument("--workers", default=1, type=int, help="Number of dataloader workers, currently somewhat broken so stick to 1")
+    parser.add_argument("--workers", default=1, type=int, help="Number of dataloader workers, may work incorrectly")
     parser.add_argument("--feature-mode", default="spectrogram", type=str,
                         help="Possible values: 'spectrogram' or 'resnet'")
     parser.add_argument("name", type=str, help="The experiment run name for tensorboard")
@@ -120,7 +120,7 @@ if __name__ == "__main__":
 
     save_best_callback = keras.callbacks.ModelCheckpoint(filepath="models/"+args.name+".{val_loss:.3f}.h5",
                                                          save_best_only=True, monitor='val_loss')
-    callback = keras.callbacks.EarlyStopping(monitor='val_loss', patience=3)
+    callback = keras.callbacks.EarlyStopping(monitor='val_f1_m', patience=5)
 
     model.fit(data_generator, callbacks=[reduce_lr, tensorboard_callback, save_best_callback, callback],
               epochs=args.epochs, workers=args.workers, validation_data=data_generator_val)
