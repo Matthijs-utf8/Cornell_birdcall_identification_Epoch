@@ -132,7 +132,7 @@ def combine_files(files, universal_sr=22050, seconds=5):
 	return combined_sounds, labels
 
 """ Takes in a sound sample and returns the sound samples shifted in amplitude by n_steps."""
-def amplitude_shift(sample, n_steps):
+def amplitude_shift(samples, n_steps, sampling_rate):
 	shifted_samples = librosa.effects.pitch_shift(samples,sampling_rate,n_steps=n_steps)
 	return shifted_samples
 
