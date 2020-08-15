@@ -19,8 +19,8 @@ df_train = pd.read_csv(base_dir + "train.csv")
 
 ####### !!!!!!!!!!!!!!! ##########
 ####### Run these two lines below once if you've never run this file before. It adds a filepath to each file in train.csv #########
-df_train['full_path'] = base_dir + "train_audio/" + df_train['ebird_code'] + '/' + df_train['filename']
-df_train.to_csv(base_dir + "train.csv")
+# df_train['full_path'] = base_dir + "train_audio/" + df_train['ebird_code'] + '/' + df_train['filename']
+# df_train.to_csv(base_dir + "train.csv")
 
 
 """ Takes in the full df_train and outputs a dataframe with only 1 randomly choosen entry from a specified metric
@@ -132,7 +132,7 @@ def combine_files(files, universal_sr=22050, seconds=5):
 	return combined_sounds, labels
 
 """ Takes in a sound sample and returns the sound samples shifted in amplitude by n_steps."""
-def amplitude_shift(sample, n_steps):
+def amplitude_shift(samples, n_steps, sampling_rate):
 	shifted_samples = librosa.effects.pitch_shift(samples,sampling_rate,n_steps=n_steps)
 	return shifted_samples
 
@@ -148,7 +148,6 @@ def plot_amplitude(original_samples, shifted_samples, sampling_rate):
 	plt.show()
 
 	return
-
 
 
 if __name__ == "__main__":
