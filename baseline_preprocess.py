@@ -67,6 +67,8 @@ def tf_fourier(file_path):
 
 spectrogram_shape = (250, 257)
 
+resnet: keras.models.Model = ResNet50(input_shape=(spectrogram_shape + (3,)), include_top=False)
+
 if __name__ == "__main__":
     import sys
     import os
@@ -81,9 +83,6 @@ if __name__ == "__main__":
     use_resnet = args.feature_mode == "resnet"
 
     print(args.bird_codes)    
-
-    if use_resnet:
-        resnet: keras.models.Model = ResNet50(input_shape=(spectrogram_shape + (3,)), include_top=False)
     
     # Create output_dir if it doesn't exist yet
     if not os.path.isdir(output_dir):
