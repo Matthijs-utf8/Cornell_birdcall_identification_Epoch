@@ -7,8 +7,6 @@ from tensorflow.keras import backend as K
 from tensorflow.keras.callbacks import TensorBoard
 
 from tensorflow.keras import layers
-import dataloader
-from birdcodes import bird_code
 
 if __name__ == '__main__':
     try:
@@ -17,6 +15,10 @@ if __name__ == '__main__':
             tf.config.experimental.set_memory_growth(device, True)
     except IndexError:
         pass
+
+import dataloader
+from birdcodes import bird_code
+
 
 class LRTensorBoard(TensorBoard):
     "Tensorboard that also logs learning rate"
@@ -57,9 +59,9 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", default=50, type=int, help="Number of epochs to train for")
     parser.add_argument("--batch-size", default=512, type=int, help="Training batch size")
     parser.add_argument("--workers", default=1, type=int, help="Number of dataloader workers, may work incorrectly")
-    parser.add_argument("--feature-mode", default="spectrogram", type=str,
-                        help="Possible values: 'spectrogram' or 'resnet'")
-    parser.add_argument("name", type=str, help="The experiment run name for tensorboard")
+    parser.add_argument("--feature_mode", default="spectrogram", type=str,
+        help="Possible values: 'spectrogram', 'resnet', or '1d-conv'")
+    parser.add_argument("--name", type=str, help="The experiment run name for tensorboard")
 
     args = parser.parse_args()
 
@@ -68,14 +70,19 @@ if __name__ == "__main__":
 
     spectrogram_dim = (250, 257)
 
-    # input_shape = (16, 7, 2048)
-    input_shape = (8, 9, 2048)
-    if not use_resnet:
+    
+    if args.feature_mode == "spectrogram":
         input_shape = spectrogram_dim + (1,)
 
-    if not use_resnet:
+    elif args.feature_mode == "1d-conv":
+        input_shape = spectrogram_dim
+    elif args.feature_mode == "resnet":
+        # input_shape = (16, 7, 2048)
+        input_shape = (8, 9, 2048)
+    
+    if args.feature_mode in ["spectrogram", "1d-conv"]:
         data_generator = dataloader.DataGenerator("spectrograms", batch_size=args.batch_size, dim=input_shape)
-    else:
+    elif args.feature_mode == "resnet":
         data_generator = dataloader.DataGenerator("preprocessed2", batch_size=args.batch_size, dim=input_shape)
 
     data_generator, data_generator_val  = data_generator.split(0.1)
@@ -86,8 +93,7 @@ if __name__ == "__main__":
     print(f'Number of devices for multigpu strategy: {strategy.num_replicas_in_sync}')
 
     with strategy.scope():
-
-        if not use_resnet:
+        if args.feature_mode == "spectrogram":
             model = keras.models.Sequential([
                 layers.Conv2D(16, (5, 5), activation='relu', input_shape=input_shape),
                 layers.MaxPool2D(),
@@ -97,14 +103,26 @@ if __name__ == "__main__":
                 layers.Flatten(),
                 layers.Dense(len(bird_code), activation="sigmoid"),
             ])
-        else:
-            model = kears = keras.models.Sequential([
+        elif args.feature_mode == "resnet":
+            model = keras.models.Sequential([
                 layers.GlobalMaxPool2D(input_shape=input_shape),
                 layers.Dense(1024),
-                layers.Dense(len(bird_code)),
+                layers.Dense(len(bird_code), activation="sigmoid"),
+            ])
+        elif args.feature_mode == "1d-conv":
+            model = keras.models.Sequential([
+                layers.Conv1D(256, 3, activation="relu"),
+                layers.MaxPool1D(2),
+                layers.Conv1D(256, 3, activation="relu"),
+                layers.MaxPool1D(2),
+                layers.Conv1D(256, 3, activation="relu"),
+                layers.MaxPool1D(2),
+                layers.Conv1D(256, 3, activation="relu"),
+                layers.Flatten(),
+                layers.Dense(len(bird_code), activation="sigmoid")
             ])
 
-        print("trainable count:", len(model.trainable_variables))
+        # print("trainable count:", len(model.trainable_variables))
         optimizer = keras.optimizers.Adam(
             learning_rate=args.lr,
             # decay=1e-2,
