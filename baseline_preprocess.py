@@ -138,7 +138,7 @@ if __name__ == "__main__":
                 fragments = fragments[:, :, :, np.newaxis]
 
                 # match number of labels to fragments
-                labels = np.array([bird_id] * len(fragments))
+                labels = np.array([[bird_id]] * len(fragments))
                 print("Shape", fragments.shape)
                 print("Shape label", labels.shape)
 
@@ -148,8 +148,9 @@ if __name__ == "__main__":
                         data=fragments, chunks=True,
                         # compression="gzip"
                     )
+                    max_birds_per_segment = 20
                     label_set = f.create_dataset(
-                        "labels", np.shape(labels), np.int, maxshape=(None,), data=labels, chunks=True
+                        "labels", np.shape(labels), np.int, maxshape=(None, max_birds_per_segment), data=labels, chunks=True
                     )
                 else:
                     shape = np.array(dataset.shape)
