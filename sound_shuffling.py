@@ -149,6 +149,22 @@ def plot_amplitude(original_samples, shifted_samples, sampling_rate):
 
 	return
 
+"""Takes in the samples received from librosa.load and returns samples with noice"""
+def add_white_noise(samples, target_snr=2):
+	
+	#Calculate the root mean square of the samples
+	RMS_samples = np.sqrt(np.mean(samples ** 2))
+	
+	#Calculate the root mean square of the noise given a target SNR
+	RMS_noise = np.sqrt((RMS_samples ** 2) / 10 ** (target_snr / 10))
+	
+	#Generate Additive White Gaussian Noise
+	noise = np.random.normal(0, RMS_noise, samples.shape[0])
+	
+	#Add noise to samples
+	samples += noise
+	
+	return samples
 
 if __name__ == "__main__":
 	pass

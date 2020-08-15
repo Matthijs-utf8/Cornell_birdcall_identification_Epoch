@@ -1,52 +1,69 @@
 import numpy as np
-import pandas as pd
 import librosa
-import random
-import warnings
-import sounddevice as sd
-import data_reading
-import birdcodes
+import matplotlib.pyplot as plt
 import scipy
 import Noise_Extractor
-import sound_shuffling
+import sklearn
 
 
-# A function that prevents warnings when loading in files with librosa
-warnings.simplefilter("ignore")
+""" A helper function for normalizing signals. Nice for plotting and for normalizing the dataset. """
+def normalize(samples, axis=0):
+	if len(samples.shape) == 1:
+		start_shape = samples.shape
+		return sklearn.preprocessing.normalize(samples.reshape( (-1,1) ), axis=axis, norm="max").reshape(start_shape)
+	else:
+		return sklearn.preprocessing.normalize(samples, axis=axis, norm="max")
 
-# Add the path of each file to the train.csv
-base_dir = data_reading.read_config()
-df_train = pd.read_csv(base_dir + "train.csv")
 
-####### !!!!!!!!!!!!!!! ##########
-####### Run these two lines below once if you've never run this file before. It adds a filepath to each file in train.csv #########
-# df_train['full_path'] = base_dir + "train_audio/" + df_train['ebird_code'] + '/' + df_train['filename']
-# df_train.to_csv(base_dir + "train.csv")
-
+""" A function for resampling any signal. Automatically checks if the sampling rat is already correct. """
 def resample(samples, sampling_rate, universal_sr):
 	
 	if sampling_rate == universal_sr: return samples
 	
 	else: return scipy.signal.resample(x=samples, num=int( universal_sr * (len(samples)/sampling_rate) ) )
 
+
+""" A function call to Noise_Extractor.py """
 def extract_noise(samples, sampling_rate, window_width=2048, stepsize=512, verbose=False):
 	
 	return Noise_Extractor.filter_sound(samples, sampling_rate, window_width=window_width, stepsize=stepsize, verbose=verbose)
 
-def create_shuffled_dataset(dataset_size=3, metrics=["country"], files_to_combine=2, universal_sr=22050, clip_seconds=5):
-	
-	for _ in range(dataset_size):
-		
-		
-		new_dataframe = sound_shuffling.filter_metadata_by_metrics(df_train, metrics=["country", "species"], nr_of_files=files_to_combine)
-		
-		
-		random_files = sound_shuffling.pick_files_at_random(new_dataframe, nr_of_files=files_to_combine)
-		
-		
-		combined_file, labels = sound_shuffling.combine_files(files=random_files, universal_sr=universal_sr, seconds=clip_seconds)
 
-
-if __name__ == "__main__":
+""" A function to make a specific spectrogram """
+def make_spectrogram(samples, window_width, spectrogram="normal", verbose=False):
 	
-	create_shuffled_dataset(dataset_size=3, metrics=["country"], files_to_combine=2, universal_sr=22050, clip_seconds=5)
+	if spectrogram == "normal":
+		
+		spectr = np.abs(librosa.stft(samples, win_length=512, window="hamm"))
+		
+		dB_spectr = librosa.amplitude_to_db(spectr, ref=np.max)
+		
+		if verbose:
+		
+			plt.imshow(spectr)
+			plt.show()
+			
+			plt.imshow(dB_spectr)
+			plt.show()
+		
+		return dB_spectr
+	
+	elif spectrogram == "mel":
+		
+		mel_spectr = librosa.feature.melspectrogram(samples, win_length=512, window="hamm")
+		
+		mel_dB_spectr = librosa.amplitude_to_db(mel_spectr, ref=np.max)
+		
+		if verbose:
+			
+			plt.imshow(mel_spectr)
+			plt.show()
+			
+			plt.imshow(mel_dB_spectr)
+			plt.show()
+			
+		return mel_dB_spectr
+	
+	else:
+		
+		raise  ValueError("{} does not exist".format(spectrogram))
