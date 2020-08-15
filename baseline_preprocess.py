@@ -1,4 +1,5 @@
 import datetime
+import time
 
 import h5py
 import tensorflow as tf
@@ -65,27 +66,23 @@ def tf_fourier(file_path, display=False):
         pass
     
     # Generate the spectrogram
+    if display:
+        print("Start fft")
+    start = time.time()
     spectrogram = tf.abs(
         tf.signal.stft(tf.reshape(sound, [1, -1]), window_size, window_size)
     )[0]
+    if display:
+        print("Done, time (s):", time.time() - start)
 
     # Split up into slices of (by default) 5 seconds
-    if display:
-        slices = [
-            spectrogram[
-                 i      * spectrogram_slices_per_input :
-                (i + 1) * spectrogram_slices_per_input
-            ]
-            for i in tqdm(range(spectrogram.shape[0] // spectrogram_slices_per_input), desc="FFT segment")
+    slices = [
+        spectrogram[
+             i      * spectrogram_slices_per_input :
+            (i + 1) * spectrogram_slices_per_input
         ]
-    else:
-        slices = [
-            spectrogram[
-                 i      * spectrogram_slices_per_input :
-                (i + 1) * spectrogram_slices_per_input
-            ]
-            for i in range(spectrogram.shape[0] // spectrogram_slices_per_input)
-        ]
+        for i in range(spectrogram.shape[0] // spectrogram_slices_per_input)
+    ]
 
     return np.array(slices)
 
