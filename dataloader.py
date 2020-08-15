@@ -6,6 +6,7 @@ import numpy as np
 from tensorflow import keras
 import pandas as pd
 from tensorflow.python.keras.applications.resnet import ResNet50
+from tqdm import tqdm
 
 import data_reading
 from baseline_preprocess import preprocess, spectrogram_shape, tf_fourier
@@ -145,7 +146,7 @@ class DataGeneratorTestset(keras.utils.Sequence):
             if self.use_resnet:
                 fragments = preprocess(file, self.resnet)
             else:
-                fragments = tf_fourier(file)
+                fragments = tf_fourier(file, display=True)
                 # shape (?, 250, 257) -> (?, 250, 257, 1) aka add channel
                 fragments = fragments[:, :, :, np.newaxis]
 
