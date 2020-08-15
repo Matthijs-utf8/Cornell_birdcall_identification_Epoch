@@ -9,7 +9,6 @@ import data_reading
 import birdcodes
 import scipy
 import matplotlib.pyplot as plt
-import Noise_Extractor as ne
 
 # A function that prevents warnings when loading in files with librosa
 warnings.simplefilter("ignore")
@@ -167,45 +166,7 @@ def add_white_noise(samples, target_snr=2):
 	
 	return samples
 
-"""Takes in samples and adds random background noise from one of the other files in full_path"""
-def add_random_background_noise(samples, sampling_rate):
-	#Get the path to a random soundfile
-	random_sample_path = df_train['full_path'][np.random.randint(0, len(df_train['full_path']))]
-	
-	#Load the random sample
-	random_sample, sr = librosa.load(random_sample_path)
-	
-	if sr != sampling_rate:
-		raise ValueError("Sampling rates zijn niet gelijk, dus daar moet mogelijk iets aan gedaan worden")
-	
-	#Get background noise from random sample
-	noise = ne.get_noise(random_sample, sr)
-	
-	#Filter the foreground samples to be used (not sure if necessary)
-	samples = ne.filter_sound(samples, sr, verbose=False)
-	
-	#Normalize noise and samples
-	noise, samples = ne.normalize(noise), ne.normalize(samples)
-	
-	if noise.shape[0] > samples.shape[0]:
-		start_index = np.random.randint(0, noise.shape[0] - samples.shape[0])
-		noise = noise[start_index : start_index + samples.shape[0]]
-	
-	else:
-		noise = np.array(list(noise) * (samples.shape[0] // noise.shape[0]) + list(noise)[:samples.shape[0] - ((samples.shape[0] // noise.shape[0]) * noise.shape[0])])
-		
-	
-	print(samples.shape[0])
-	print(noise.shape[0])
-	print('-------------------')
-	
-	#Combine noise and filtered samples
-	samples += noise
-	
-	return samples
-
 
 if __name__ == "__main__":
-	for x in range(10):
-		samples, sr = librosa.load(df_train['full_path'][x])
-		add_random_background_noise(samples, sr)
+	pass
+	
