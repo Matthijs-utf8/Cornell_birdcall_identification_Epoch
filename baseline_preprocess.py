@@ -86,7 +86,7 @@ def tf_fourier(file_path, display=False):
 
     return np.array(slices)
 
-spectrogram_shape = (250, 257, 1)
+spectrogram_shape = (250, 257)
 DATASET_VERSION = "1.0.0"
 
 

@@ -7,8 +7,6 @@ from tensorflow.keras import backend as K
 from tensorflow.keras.callbacks import TensorBoard
 
 from tensorflow.keras import layers
-import dataloader
-from birdcodes import bird_code
 
 if __name__ == '__main__':
     try:
@@ -17,6 +15,10 @@ if __name__ == '__main__':
             tf.config.experimental.set_memory_growth(device, True)
     except IndexError:
         pass
+
+import dataloader
+from birdcodes import bird_code
+
 
 class LRTensorBoard(TensorBoard):
     "Tensorboard that also logs learning rate"
@@ -59,7 +61,7 @@ if __name__ == "__main__":
     parser.add_argument("--workers", default=1, type=int, help="Number of dataloader workers, may work incorrectly")
     parser.add_argument("--feature_mode", default="spectrogram", type=str,
         help="Possible values: 'spectrogram', 'resnet', or '1d-conv'")
-    parser.add_argument("name", type=str, help="The experiment run name for tensorboard")
+    parser.add_argument("--name", type=str, help="The experiment run name for tensorboard")
 
     args = parser.parse_args()
 
@@ -120,7 +122,7 @@ if __name__ == "__main__":
                 layers.Dense(len(bird_code), activation="sigmoid")
             ])
 
-        print("trainable count:", len(model.trainable_variables))
+        # print("trainable count:", len(model.trainable_variables))
         optimizer = keras.optimizers.Adam(
             learning_rate=args.lr,
             # decay=1e-2,
