@@ -183,28 +183,4 @@ def time_stretch(samples, rate):
 	return shifted_samples
 
 if __name__ == "__main__":
-	samples, sampling_rate = librosa.load(df_train['full_path'][1])
-	
-	freq_samples = frequency_shift(samples, sampling_rate, 5)
-	ampl_samples = amplitude_shift(samples, 0.5)
-	time_samples = time_stretch(samples, 3)
-
-	plot_frequency(samples, freq_samples, sampling_rate)
-	plot_amplitude(samples, ampl_samples, sampling_rate)
-	plot_amplitude(samples, time_samples, sampling_rate)
-
-	# print("Playing original samples")
-	# sd.play(samples, sampling_rate)
-	# sd.wait()
-
-	# print("Playing FREQUENCY shifted samples")
-	# sd.play(freq_samples, sampling_rate)
-	# sd.wait()
-
-	# print("Playing AMPLITUDE shifted samples")
-	# sd.play(ampl_samples, sampling_rate)
-	# sd.wait()
-
-	# print("Playing TIME stretched samples")
-	# sd.play(time_samples, sampling_rate)
-	# sd.wait()
+	pass
