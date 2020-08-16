@@ -186,7 +186,7 @@ def time_stretch(samples, rate):
 
 """Takes in samples and adds random background noise from one of the other files in full_path"""
 def add_random_background_noise(samples, sampling_rate):
-	
+
 	#Get the path to a random soundfile
 	random_sample_path = df_train['full_path'][np.random.randint(0, len(df_train['full_path']))]
 	
@@ -194,25 +194,31 @@ def add_random_background_noise(samples, sampling_rate):
 	random_sample, sr = librosa.load(random_sample_path)
 	
 	#Get background noise from random sample
-	noise = ne.get_noise(random_sample, sr)
+	original_noise = ne.get_noise(random_sample, sr)
+	
+	#Cut noise to correct format if there is more noise than samples
+	if original_noise.shape[0] > samples.shape[0]:
+		start_index = np.random.randint(0, original_noise.shape[0] - samples.shape[0])
+		noise = original_noise[start_index : start_index + samples.shape[0]]
+	
+	#Create more noise by repeating it in case samples is longer than noise
+	else:
+		noise = np.array(list(original_noise) * (samples.shape[0] // original_noise.shape[0]) + list(original_noise)[:samples.shape[0] - ((samples.shape[0] // original_noise.shape[0]) * original_noise.shape[0])])
+
+	#Calculate SNR of original samples; aim to get the new sample at roughly the same SNR
+	target_snr = np.abs( np.log10( np.abs( ( np.mean(samples) ) / ( np.std(samples) ) ) ) )
+	
+	#Calculate the required RMS to reach the target SNR when noise and samples are combined
+	RMS_required = np.sqrt((np.sqrt(np.mean(samples ** 2)) ** 2) / 10 ** (target_snr / 10))
+	
+	#Calculate the constant to multiply with noise to reach target SNR
+	const = RMS_required / np.sqrt(np.mean(noise ** 2))
 	
 	#Filter the foreground samples to be used (not sure if necessary)
 	samples = ne.filter_sound(samples, sr, verbose=False)
 	
-	#Normalize noise and samples
-	noise, samples = ne.normalize(noise), ne.normalize(samples)
-	
-	#Cut noise to correct format if there is more noise than samples
-	if noise.shape[0] > samples.shape[0]:
-		start_index = np.random.randint(0, noise.shape[0] - samples.shape[0])
-		noise = noise[start_index : start_index + samples.shape[0]]
-	
-	#Create more noise by repeating it in case samples is longer than noise
-	else:
-		noise = np.array(list(noise) * (samples.shape[0] // noise.shape[0]) + list(noise)[:samples.shape[0] - ((samples.shape[0] // noise.shape[0]) * noise.shape[0])])
-
 	#Combine noise and filtered samples
-	samples += noise
+	samples += const * noise 
 	
 	return samples
 
