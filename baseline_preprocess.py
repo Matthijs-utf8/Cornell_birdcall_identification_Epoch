@@ -86,9 +86,11 @@ def tf_fourier(file_path, display=False):
 
     return np.array(slices)
 
-spectrogram_shape = (250, 257, 1)
+spectrogram_shape = (250, 257)
 DATASET_VERSION = "1.0.0"
 
+
+resnet: keras.models.Model = ResNet50(input_shape=(spectrogram_shape + (3,)), include_top=False)
 
 if __name__ == "__main__":
     import sys
@@ -109,11 +111,6 @@ if __name__ == "__main__":
         raise NotImplementedError("HDF5 not set up for this, and naming scheme is incorrect (And breaking changes to shape and such)")
 
     print("All birdcodes to process:", " ".join(args.bird_codes))
-
-    # if use_resnet:
-    #     resnet: keras.models.Model = ResNet50(input_shape=(spectrogram_shape + (3,)), include_top=False)
-    
-
 
     # Process all files based on the birdcodes in the arguments
     if args.bird_codes == []:

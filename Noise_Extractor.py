@@ -87,9 +87,10 @@ def get_noise_frames(samples, sampling_rate, window_width=2048, stepsize=512, ve
 	# Get the energy coefficient that we need for separating pure noise from non-pure noise.
 	SNR, energy_coefficient = compute_energy_coefficient(samples, base_coefficient=2)
 	
-	print("Energy coefficient: " + str(round(energy_coefficient, 3) ) )
-	print("Signal-to-Noise: " + str(round(SNR, 3)))
-	
+	if verbose:
+		print("Energy coefficient: " + str(round(energy_coefficient, 3) ) )
+		print("Signal-to-Noise: " + str(round(SNR, 3)))
+		
 	""" Separating pure noise from non-pure noise. """
 	
 	# Initiate lists to store the separated frames in.
@@ -113,7 +114,8 @@ def get_noise_frames(samples, sampling_rate, window_width=2048, stepsize=512, ve
 			non_noisy_energy.append(energy)
 	
 	# A measure for how well the noise is predictable (higher is better). The better predictable it is, the better a spectral noise gate will work
-	print("Noise predictability: " + str(round(autocorr(noisy_frames)[0,1] / autocorr(non_noisy_frames)[0,1], 3) ) )
+	if verbose:
+		print("Noise predictability: " + str(round(autocorr(noisy_frames)[0,1] / autocorr(non_noisy_frames)[0,1], 3) ) )
 	
 	""" Plotting """
 	
@@ -172,6 +174,13 @@ def filter_sound(samples, sampling_rate, window_width=2048, stepsize=512, verbos
 		sd.wait()
 
 	return reduced_noise
+
+""" Function to get the noise from audio. Similar to filter_sound except what is returned."""
+def get_noise(samples, sampling_rate, window_width=2048, stepsize=512):
+	
+	noise = get_noise_frames(samples=samples, sampling_rate=sampling_rate, window_width=window_width, stepsize=stepsize)
+	
+	return noise
 
 if __name__ == "__main__":
 	
