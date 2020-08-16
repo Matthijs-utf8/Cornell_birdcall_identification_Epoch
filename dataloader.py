@@ -112,9 +112,16 @@ LONG_OVERLAP_SECONDS = 2  # seconds
 class DataGeneratorTestset(keras.utils.Sequence):
     'Generates data for Keras'
 
-    def __init__(self, batch_size=32, use_resnet=False):
-        'Initialization'
+    def __init__(self, batch_size=32, use_resnet=False, channel=True):
+        """
+
+        Args:
+            batch_size:
+            use_resnet:
+            channel: spectrogram shape if true: (?, 250, 257, 1)  if false: (?, 250, 257)
+        """
         self.batch_size = batch_size
+        self.channel = channel
 
         data_root = data_reading.test_data_base_dir + "example_test_audio/"
         label_root = data_reading.test_data_base_dir + "example_test_audio_summary.csv"
@@ -147,8 +154,9 @@ class DataGeneratorTestset(keras.utils.Sequence):
                 fragments = preprocess(file, self.resnet)
             else:
                 fragments = tf_fourier(file, display=True)
-                # shape (?, 250, 257) -> (?, 250, 257, 1) aka add channel
-                fragments = fragments[:, :, :, np.newaxis]
+                if self.channel:
+                    # shape (?, 250, 257) -> (?, 250, 257, 1) aka add channel
+                    fragments = fragments[:, :, :, np.newaxis]
 
             for i, fragment in enumerate(fragments):
                 t_start, t_end = i * 5, i * 5 + 5
