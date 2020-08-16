@@ -64,7 +64,7 @@ if __name__ == "__main__":
     parser.add_argument("--workers", default=1, type=int, help="Number of dataloader workers, may work incorrectly")
     parser.add_argument("--feature-mode", default="spectrogram", type=str,
         help="Possible values: 'spectrogram' or 'resnet' for preprocessed by resnet base")
-    parser.add_argument("--arch", default="spectrogram", type=str,
+    parser.add_argument("--arch", default="cnn", type=str,
                         help="Network architecture, possible values: 'cnn', 'resnet', or '1d-conv' or 'resnet-full")
     parser.add_argument("--name", type=str, help="The experiment run name for tensorboard")
 
@@ -128,8 +128,8 @@ if __name__ == "__main__":
             ])
         elif args.arch == "resnet-full":
             model = keras.models.Sequential([
-                ResNet50(input_shape=(spectrogram_shape + (3,)), include_top=False),
-                layers.GlobalMaxPool2D(input_shape=input_shape),
+                ResNet50(input_shape=input_shape, include_top=False, weights=None),
+                layers.GlobalMaxPool2D(input_shape=(8, 9, 2048)),
                 layers.Dense(1024),
                 layers.Dense(len(bird_code), activation="sigmoid"),
             ])
@@ -144,7 +144,7 @@ if __name__ == "__main__":
                       metrics=[keras.metrics.CategoricalAccuracy(), f1_m, precision_m, recall_m])
 
     reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.2,
-                                                  patience=5, cooldown=5, min_lr=1e-9)
+                                                  patience=5, cooldown=2, min_lr=1e-9)
 
     tensorboard_callback = LRTensorBoard(log_dir=f"logs/{args.name}")
 
