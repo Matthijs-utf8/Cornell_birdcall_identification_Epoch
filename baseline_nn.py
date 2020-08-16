@@ -118,11 +118,11 @@ if __name__ == "__main__":
 
     tensorboard_callback = LRTensorBoard(log_dir=f"logs/{args.name}")
 
-    save_best_callback = keras.callbacks.ModelCheckpoint(filepath="models/"+args.name+".{val_loss:.3f}.h5",
-                                                         save_best_only=True, monitor='val_loss')
-    callback = keras.callbacks.EarlyStopping(monitor='val_f1_m', patience=5)
+    save_best_callback = keras.callbacks.ModelCheckpoint(filepath="models/"+args.name+".val_f1.{val_f1_m:.3f}.h5",
+                                                         save_best_only=True, monitor='val_f1_m')
+    # callback = keras.callbacks.EarlyStopping(monitor='val_f1_m', patience=5)
 
-    model.fit(data_generator, callbacks=[reduce_lr, tensorboard_callback, save_best_callback, callback],
+    model.fit(data_generator, callbacks=[reduce_lr, tensorboard_callback, save_best_callback],
               epochs=args.epochs, workers=args.workers, validation_data=data_generator_val)
     model.save("models/"+args.name+".h5")
 

@@ -28,7 +28,8 @@ if __name__ == '__main__':
     })
 
     test_generator = dataloader.DataGeneratorTestset()
-    results = model.evaluate(test_generator, return_dict=True)
+    results = model.evaluate(test_generator)
+    results = {out: results[i] for i, out in enumerate(model.metrics_names)}
     print("EVALUATION:")
     padding = max(map(len, results))
     for k,v in results.items():
