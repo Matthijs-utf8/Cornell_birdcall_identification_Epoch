@@ -7,14 +7,17 @@ from tensorflow.keras import backend as K
 from tensorflow.keras.callbacks import TensorBoard
 
 from tensorflow.keras import layers
+from tensorflow.python.keras.applications.resnet import ResNet50
 
-if __name__ == '__main__':
-    try:
-        gpu_devices = tf.config.experimental.list_physical_devices('GPU')
-        for device in gpu_devices:
-            tf.config.experimental.set_memory_growth(device, True)
-    except IndexError:
-        pass
+from baseline_preprocess import spectrogram_shape
+
+# if __name__ == '__main__':
+#     try:
+#         gpu_devices = tf.config.experimental.list_physical_devices('GPU')
+#         for device in gpu_devices:
+#             tf.config.experimental.set_memory_growth(device, True)
+#     except IndexError:
+#         pass
 
 import dataloader
 from birdcodes import bird_code
@@ -59,8 +62,10 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", default=50, type=int, help="Number of epochs to train for")
     parser.add_argument("--batch-size", default=512, type=int, help="Training batch size")
     parser.add_argument("--workers", default=1, type=int, help="Number of dataloader workers, may work incorrectly")
-    parser.add_argument("--feature_mode", default="spectrogram", type=str,
-        help="Possible values: 'spectrogram', 'resnet', or '1d-conv'")
+    parser.add_argument("--feature-mode", default="spectrogram", type=str,
+        help="Possible values: 'spectrogram' or 'resnet' for preprocessed by resnet base")
+    parser.add_argument("--arch", default="spectrogram", type=str,
+                        help="Network architecture, possible values: 'cnn', 'resnet', or '1d-conv' or 'resnet-full")
     parser.add_argument("--name", type=str, help="The experiment run name for tensorboard")
 
     args = parser.parse_args()
@@ -93,7 +98,7 @@ if __name__ == "__main__":
     print(f'Number of devices for multigpu strategy: {strategy.num_replicas_in_sync}')
 
     with strategy.scope():
-        if args.feature_mode == "spectrogram":
+        if args.arch == "cnn":
             model = keras.models.Sequential([
                 layers.Conv2D(16, (5, 5), activation='relu', input_shape=input_shape),
                 layers.MaxPool2D(),
@@ -103,13 +108,13 @@ if __name__ == "__main__":
                 layers.Flatten(),
                 layers.Dense(len(bird_code), activation="sigmoid"),
             ])
-        elif args.feature_mode == "resnet":
+        elif args.arch == "resnet":
             model = keras.models.Sequential([
                 layers.GlobalMaxPool2D(input_shape=input_shape),
                 layers.Dense(1024),
                 layers.Dense(len(bird_code), activation="sigmoid"),
             ])
-        elif args.feature_mode == "1d-conv":
+        elif args.arch == "1d-conv":
             model = keras.models.Sequential([
                 layers.Conv1D(256, 3, activation="relu"),
                 layers.MaxPool1D(2),
@@ -120,6 +125,13 @@ if __name__ == "__main__":
                 layers.Conv1D(256, 3, activation="relu"),
                 layers.Flatten(),
                 layers.Dense(len(bird_code), activation="sigmoid")
+            ])
+        elif args.arch == "resnet-full":
+            model = keras.models.Sequential([
+                ResNet50(input_shape=(spectrogram_shape + (3,)), include_top=False),
+                layers.GlobalMaxPool2D(input_shape=input_shape),
+                layers.Dense(1024),
+                layers.Dense(len(bird_code), activation="sigmoid"),
             ])
 
         # print("trainable count:", len(model.trainable_variables))
