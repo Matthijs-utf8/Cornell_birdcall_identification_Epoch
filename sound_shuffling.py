@@ -187,15 +187,20 @@ def time_stretch(samples, rate):
 """Takes in samples and adds random background noise from one of the other files in full_path"""
 def add_random_background_noise(samples, sampling_rate):
 
-	#Get the path to a random soundfile
-	random_sample_path = df_train['full_path'][np.random.randint(0, len(df_train['full_path']))]
+	original_noise = np.array([0])
 	
-	#Load the random sample
-	random_sample, sr = librosa.load(random_sample_path)
-	
-	#Get background noise from random sample
-	original_noise = ne.get_noise(random_sample, sr)
-	
+	#Repeat loading files until noise segment is at least 5 seconds
+	while (original_noise.shape[0] < 110250):
+		
+		#Get the path to a random soundfile
+		random_sample_path = df_train['full_path'][np.random.randint(0, len(df_train['full_path']))]
+		
+		#Load the random sample
+		random_sample, sr = librosa.load(random_sample_path)
+		
+		#Get background noise from random sample
+		original_noise = ne.get_noise(random_sample, sr)
+		
 	#Cut noise to correct format if there is more noise than samples
 	if original_noise.shape[0] > samples.shape[0]:
 		start_index = np.random.randint(0, original_noise.shape[0] - samples.shape[0])
@@ -204,7 +209,7 @@ def add_random_background_noise(samples, sampling_rate):
 	#Create more noise by repeating it in case samples is longer than noise
 	else:
 		noise = np.array(list(original_noise) * (samples.shape[0] // original_noise.shape[0]) + list(original_noise)[:samples.shape[0] - ((samples.shape[0] // original_noise.shape[0]) * original_noise.shape[0])])
-
+	
 	#Calculate SNR of original samples; aim to get the new sample at roughly the same SNR
 	target_snr = np.abs( np.log10( np.abs( ( np.mean(samples) ) / ( np.std(samples) ) ) ) )
 	
@@ -220,7 +225,8 @@ def add_random_background_noise(samples, sampling_rate):
 	#Combine noise and filtered samples
 	samples += const * noise 
 	
+	sd.play(samples)
 	return samples
-
+	
 if __name__ == "__main__":
 	pass
