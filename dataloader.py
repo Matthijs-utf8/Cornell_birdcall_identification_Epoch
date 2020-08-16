@@ -2,6 +2,7 @@ import copy
 import glob
 import threading
 
+import h5py
 import numpy as np
 from tensorflow import keras
 import pandas as pd
@@ -97,16 +98,65 @@ class DataGenerator(keras.utils.Sequence):
         return self, test
 
 
-def compute_overlap(x1, y1, x2, y2):
-    return max(x1, y1) - min(x2, y2)
+
+class DataGeneratorHDF5(keras.utils.Sequence):
+    'Generates data for Keras'
+
+    def __init__(self, file, batch_size=32, dim=(16, 7, 2048), shuffle=True, verbose=True):
+        'Initialization'
+        self.batch_size = batch_size
+        self.dim = dim
+        self.shuffle = shuffle
+
+        self.file = file
+
+        self.f = h5py.File(file, "r")
+        self.length = len(self.f["spectrograms"])
+        if verbose:
+            print("Using dataset", file)
+            print("  Size", self.length)
+            print("  Metadata:")
+            for k, v in self.f["images"].attrs.items():
+                print("   ", k, v)
+
+        # Note: if split into training and test sets, these may not  be the same shape
+        self.indexes = np.arange(len(self.files))
+
+        self.X = self.f["spectrograms"]
+        self.y = self.f["labels"]
+
+        self.on_epoch_end()
+
+    def __len__(self):
+        'Denotes the number of batches per epoch'
+        return int(np.floor(len(self.indexes) / self.batch_size))
+
+    def __getitem__(self, index):
+        'Generate one batch of data'
+        # Generate indexes of the batch
+        indexes = self.indexes[index * self.batch_size:(index + 1) * self.batch_size]
+
+        X = self.X[indexes]
+        y = self.y[indexes]
+
+        return X, y
+
+    def on_epoch_end(self):
+        'Updates indexes after each epoch'
+        if self.shuffle:
+            np.random.shuffle(self.indexes)
 
 
-# minimum overlap of short birdcalls
-MIN_OVERLAP = 0.5
-# the min duration of a 'long' bircall
-LONG_BIRDCALL_LENGTH = 5  # seconds
-# how long should we at least hear this birdcall in a segment
-LONG_OVERLAP_SECONDS = 2  # seconds
+    def split(self, factor=0.1):
+        """ Split into training and validation sets, probably very not thread safe """
+        split = int(len(self.indexes) * (1 - factor))
+        train_indices, test_indices = self.indexes[:split], self.indexes[split:]
+        test = copy.deepcopy(self)
+
+        self.indexes = train_indices
+        test.indexes = test_indices
+        return self, test
+
 
 
 class DataGeneratorTestset(keras.utils.Sequence):
