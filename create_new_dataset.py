@@ -107,36 +107,63 @@ def random_background_dataset():
 
 		preprocessing.write(base_dir + "train_audio_random_background/" + df_train['ebird_code'][i] + '/random_background_' + df_train['filename'][i], 22050, samples)
 
+
 """ A function that creates additional shifted data to append to original dataset.
-	"Shift" can be Amplitude, Frequency or Time. """
-def create_shifted_data(shift, universal_sr, clip_seconds):
+	"Shift" can be Amplitude, Frequency or Time.
+	"nr_files" is how much shifted files will be added"""
+def create_shifted_dataset(shift, universal_sr, clip_seconds, nr_files):
+	all_labels = []
+	all_files = []
 
-	# Get random file and its label from dataset
-	random_file, label = create_shuffled_dataset(metrics=[], files_to_combine=1, universal_sr=universal_sr, clip_seconds=clip_seconds)
+	# Create a directory to save  the new files in
+	save_dir = base_dir + "/train_audio_" + str(shift) + "_shifted"
+	if not os.path.exists(save_dir):
+		os.mkdir(save_dir)
 
-	if shift == "Amplitude":
-		# Random shift
-		n_steps = float(random.randrange(0, 1500))/100 # lower volume is between 0 and 1, so no negative numbers
+	for _ in range(nr_files):
 
-		shifted_file = sound_shuffling.amplitude_shift(random_file, n_steps)
+		# Get the sorted dataframe and pick ONE random file from it
+		new_dataframe = sound_shuffling.filter_metadata_by_metrics(df_train, metrics=None, nr_of_files=1)
+		random_file = sound_shuffling.pick_files_at_random(new_dataframe, nr_of_files=1)
 
-	elif shift == "Frequency":
-		# Random shift
-		n_steps = random.randint(-15, 15)
+		if shift == "Amplitude":
+			# Random shift
+			n_steps = float(random.randrange(0, 1500))/100 # lower volume is between 0 and 1, so no negative numbers
 
-		shifted_file = sound_shuffling.frequency_shift(random_file, universal_sr, n_steps)
+			shifted_file = sound_shuffling.amplitude_shift(random_file, n_steps)
 
-	elif shift == "Time":
-		# Random shift
-		n_steps = random.randint(-15, 15)
+		elif shift == "Frequency":
+			# Random shift
+			n_steps = random.randint(-15, 15)
 
-		shifted_file = sound_shuffling.time_stretch(random_file, n_steps)
+			shifted_file = sound_shuffling.frequency_shift(random_file, universal_sr, n_steps)
 
-	else:
-		print("Wrong type of shift, you can use: Amplitude, Frequency or Time.")
-		exit()
+		elif shift == "Time":
+			# Random shift
+			n_steps = random.randint(-15, 15)
 
-	return shifted_file, label
+			shifted_file = sound_shuffling.time_stretch(random_file, n_steps)
+
+		else:
+			print("Wrong type of shift, you can use: Amplitude, Frequency or Time.")
+			exit()
+
+		# Create a new filename
+		filename = random_file["filename"] + "_" + str(shift) + "_shifted"
+
+		# Save the files as .mp3 files
+		preprocessing.write(f=save_dir + "/" + filename + ".mp3", x=shifted_file)
+
+		# Add the file and label to the lists
+		all_files.append(filename + ".mp3")
+		all_labels.append(labels)
+
+	# Save the labeled files in a dictionary as a pickle
+	labeled_data = dict(zip(all_files, all_labels))
+	f = open(save_dir + "/dict.pkl","wb")
+	pickle.dump(labeled_data, f)
+	f.close()
+	return
 
 if __name__ == "__main__":
 
