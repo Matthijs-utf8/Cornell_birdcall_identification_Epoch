@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import scipy
 import Noise_Extractor
 import sklearn
+import pydub
 
 
 """ A helper function for normalizing signals. Nice for plotting and for normalizing the dataset. """
@@ -21,6 +22,23 @@ def resample(samples, sampling_rate, universal_sr):
 	if sampling_rate == universal_sr: return samples
 	
 	else: return scipy.signal.resample(x=samples, num=int( universal_sr * (len(samples)/sampling_rate) ) )
+
+
+""" A function for converting an array to a .mp3 file """
+def write(f, sr, x, normalized=True):
+	
+	# Check the amount of channels that we need to convert the file to
+	channels = 2 if (x.ndim == 2 and x.shape[1] == 2) else 1
+	
+	# If the array is normalized, scale the array by 2**15, else do nothing to the array.
+	if normalized:  # normalized array - each item should be a float in [-1, 1)
+		y = np.int16(x * 2 ** 15)
+	else:
+		y = np.int16(x)
+	
+	# Convert the array to mp3 with pydub.
+	song = pydub.AudioSegment(y.tobytes(), frame_rate=sr, sample_width=2, channels=channels)
+	song.export(f, format="mp3", bitrate="64k")
 
 
 """ A function call to Noise_Extractor.py """
