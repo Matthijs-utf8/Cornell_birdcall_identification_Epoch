@@ -107,6 +107,37 @@ def random_background_dataset():
 
 		preprocessing.write(base_dir + "train_audio_random_background/" + df_train['ebird_code'][i] + '/random_background_' + df_train['filename'][i], 22050, samples)
 
+""" A function that creates additional shifted data to append to original dataset.
+	"Shift" can be Amplitude, Frequency or Time. """
+def create_shifted_data(shift, universal_sr, clip_seconds):
+
+	# Get random file and its label from dataset
+	random_file, label = create_shuffled_dataset(metrics=[], files_to_combine=1, universal_sr=universal_sr, clip_seconds=clip_seconds)
+
+	if shift == "Amplitude":
+		# Random shift
+		n_steps = float(random.randrange(0, 1500))/100 # lower volume is between 0 and 1, so no negative numbers
+
+		shifted_file = sound_shuffling.amplitude_shift(random_file, n_steps)
+
+	elif shift == "Frequency":
+		# Random shift
+		n_steps = random.randint(-15, 15)
+
+		shifted_file = sound_shuffling.frequency_shift(random_file, universal_sr, n_steps)
+
+	elif shift == "Time":
+		# Random shift
+		n_steps = random.randint(-15, 15)
+
+		shifted_file = sound_shuffling.time_stretch(random_file, n_steps)
+
+	else:
+		print("Wrong type of shift, you can use: Amplitude, Frequency or Time.")
+		exit()
+
+	return shifted_file, label
+
 if __name__ == "__main__":
 
 	# Create a dictionary for storing the labels that accompany the files
