@@ -4,7 +4,6 @@ import librosa
 import librosa.display as librosa_display
 import random
 import warnings
-import sounddevice as sd
 import data_reading
 import birdcodes
 import scipy
@@ -126,10 +125,6 @@ def combine_files(files, universal_sr=22050, seconds=5):
 			# Add the sounds in the time domain
 			combined_sounds += samples[random_starting_sample:random_starting_sample + universal_sr * seconds]
 
-	# Play the combined sounds
-	sd.play(combined_sounds, sampling_rate)
-	sd.wait()
-
 	return combined_sounds, labels
 
 """ Takes in a sound sample received from librosa.load and returns the sound samples shifted in amplitude by n_steps."""
@@ -225,7 +220,6 @@ def add_random_background_noise(samples, sampling_rate):
 	#Combine noise and filtered samples
 	samples += const * noise 
 	
-	sd.play(samples)
 	return samples
 	
 if __name__ == "__main__":
