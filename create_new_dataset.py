@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import os
 import librosa
 import random
 import warnings
@@ -11,6 +12,8 @@ import sound_shuffling
 import sklearn
 from PIL import Image
 import preprocessing
+import re
+import pickle
 
 ### !!!!!!!!!! ###
 # Comment out the lines below if you want different samples every time
@@ -30,76 +33,101 @@ df_train = pd.read_csv(base_dir + "train.csv")
 # df_train.to_csv(base_dir + "train.csv")
 
 """ A function that uses a few methods from sound_shuffling.py to be able to easily create a new shuffled dataset. """
-def create_shuffled_dataset(metrics, files_to_combine, universal_sr, clip_seconds):
+def create_shuffled_dataset(nr_of_files, metrics, files_to_combine, universal_sr, clip_seconds):
+
+	all_labels = []
+	all_files = []
+
+	# Create a directory to save  the new files in
+	save_dir = base_dir + "/train_audio_combined_" + str(files_to_combine) + "_" + str(metrics)
+	if not os.path.exists(save_dir):
+		os.mkdir(save_dir)
+
+	for _ in range(nr_of_files):
+
+		# Get the sorted dataframe and pick random files from it (if metrics == None, the files will be randomly picked from the whole dataset)
+		new_dataframe = sound_shuffling.filter_metadata_by_metrics(df_train, metrics=metrics, nr_of_files=files_to_combine)
+		random_files = sound_shuffling.pick_files_at_random(new_dataframe, nr_of_files=files_to_combine)
+
+		# Create a new filename using regular expressions
+		filename = ""
+		for file in random_files["filename"]:
+			filename += "_" + re.findall("[XC]{2,}[0-9]{2,}", file)[0]
+
+		# Add the files to the list
+		all_files.append(filename + ".mp3")
 
 
-	new_dataframe = sound_shuffling.filter_metadata_by_metrics(df_train, metrics=metrics, nr_of_files=files_to_combine)
+		# Combine the files
+		combined_file, labels = sound_shuffling.combine_files(files=random_files, universal_sr=universal_sr, seconds=clip_seconds)
 
+		# Save the files as .mp3 files
+		preprocessing.write(f=save_dir + "/" + filename + ".mp3", x=combined_file)
 
-	random_files = sound_shuffling.pick_files_at_random(new_dataframe, nr_of_files=files_to_combine)
+		# Add labels to the list
+		all_labels.append(labels)
 
+	# Save the labeled files in a dictionary as a pickle
+	labeled_data = dict(zip(all_files, all_labels))
+	f = open(save_dir + "/dict.pkl","wb")
+	pickle.dump(labeled_data, f)
+	f.close()
 
-	combined_file, labels = sound_shuffling.combine_files(files=random_files, universal_sr=universal_sr, seconds=clip_seconds)
+def random_noise_dataset():
 
-	return combined_file, labels
+	if not os.path.exists(base_dir + "train_audio_random_noise"):
+		os.mkdir(base_dir + "train_audio_random_noise")
 
-""" A function that creates additional shifted data to append to original dataset.
-	"Shift" can be Amplitude, Frequency or Time. """
-def create_shifted_data(shift, universal_sr, clip_seconds):
+	for code in birdcodes.bird_code.keys():
+		if not os.path.exists(base_dir + "train_audio_random_noise/" + code):
+			os.mkdir(base_dir + "train_audio_random_noise/" + code)
 
-	# Get random file and its label from dataset
-	random_file, label = create_shuffled_dataset(metrics=[], files_to_combine=1, universal_sr=universal_sr, clip_seconds=clip_seconds)
+	df_train['full_path_random_noise'] = base_dir + "train_audio_random_noise/" + df_train['ebird_code'] + '/random_noise_' + df_train['filename']
 
-	if shift == "Amplitude":
-		# Random shift
-		n_steps = float(random.randrange(0, 1500))/100 # lower volume is between 0 and 1, so no negative numbers
+	for i in range(len(df_train['full_path'])):
+		samples, sr = librosa.load(df_train['full_path'][i])
+		samples = sound_shuffling.add_white_noise(samples, target_snr=np.random.normal(4.5, 2.0))
 
-		shifted_file = sound_shuffling.amplitude_shift(random_file, n_steps)
+		preprocessing.write(base_dir + "train_audio_random_noise/" + df_train['ebird_code'][i] + '/random_noise_' + df_train['filename'][i], 22050, samples)
 
-	elif shift == "Frequency":
-		# Random shift
-		n_steps = random.randint(-15, 15)
+def random_background_dataset():
 
-		shifted_file = sound_shuffling.frequency_shift(random_file, universal_sr, n_steps)
+	if not os.path.exists(base_dir + "train_audio_random_background"):
+		os.mkdir(base_dir + "train_audio_random_background")
 
-	elif shift == "Time":
-		# Random shift
-		n_steps = random.randint(-15, 15)
+	for code in birdcodes.bird_code.keys():
+		if not os.path.exists(base_dir + "train_audio_random_background/" + code):
+			os.mkdir(base_dir + "train_audio_random_background/" + code)
 
-		shifted_file = sound_shuffling.time_stretch(random_file, n_steps)
+	df_train['full_path_random_background'] = base_dir + "train_audio_random_background/" + df_train['ebird_code'] + '/random_background_' + df_train['filename']
 
-	else:
-		print("Wrong type of shift, you can use: Amplitude, Frequency or Time.")
-		exit()
+	for i in range(len(df_train['full_path'])):
+		samples, sr = librosa.load(df_train['full_path'][i])
+		samples = sound_shuffling.add_random_background_noise(samples, sr)
 
-	return shifted_file, label
+		preprocessing.write(base_dir + "train_audio_random_background/" + df_train['ebird_code'][i] + '/random_background_' + df_train['filename'][i], 22050, samples)
 
-"""Create actual dataset with spectrograms"""
 if __name__ == "__main__":
 
 	# Create a dictionary for storing the labels that accompany the files
-	### !!!!!!!!!!!!!!!! ###
-	### LABELING WERKT NOG NIET ###
-	all_labels = {}
 
 	""" Hyperparameters """
 	dataset_size = 1
-	metrics = ["country"] # If list is empty, it chooses from all the files
+	metrics = [] # If list is empty, it chooses from all the files
 	files_to_combine = 2 # Number of files to merge each time
 	universal_sr = 22050
 	clip_seconds = 5 # The length of the new clips in seconds
 	window_width = 512 #
 
-	for n in range(dataset_size):
+	create_shuffled_dataset(
+						  nr_of_files=dataset_size,
+						  metrics=metrics,
+						  files_to_combine=files_to_combine,
+						  universal_sr=universal_sr,
+						  clip_seconds=clip_seconds
+						  )
 
-		combined_audio, labels = create_shuffled_dataset(
-														  metrics=metrics,
-														  files_to_combine=files_to_combine,
-														  universal_sr=universal_sr,
-														  clip_seconds=clip_seconds
-														  )
-
-		"""Dont know if we want to use the denoised clips yet"""
+	"""Dont know if we want to use the denoised clips yet"""
 # 		denoised_audio = extract_noise(
 # 										combined_audio,
 # 										universal_sr,
@@ -107,16 +135,3 @@ if __name__ == "__main__":
 # 										stepsize=512,
 # 										verbose=False
 # 										)
-
-		spectr = preprocessing.make_spectrogram(
-												combined_audio,
-												window_width=512,
-												spectrogram="normal",
-												verbose=False
-												)
-
-		PIL_img = Image.fromarray(spectr)
-
-		PIL_img.save(base_dir + "/two_combined_birdsounds_by_country/" + str(n) + ".jpg")
-
-		### HIER NOG LABEL TOEVOEGEN AAN DICTIONARY ###

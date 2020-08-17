@@ -155,7 +155,7 @@ def filter_sound(samples, sampling_rate, window_width=2048, stepsize=512, verbos
 	
 	noise = get_noise_frames(samples=samples, sampling_rate=sampling_rate, window_width=window_width, stepsize=stepsize, verbose=verbose)
 	
-	if noise:
+	if len(noise) > 0:
 		
 		reduced_noise = nr.reduce_noise(audio_clip=samples, noise_clip=noise, verbose=verbose)
 		
