@@ -31,26 +31,57 @@ df_train = pd.read_csv(base_dir + "train.csv")
 
 """ A function that uses a few methods from sound_shuffling.py to be able to easily create a new shuffled dataset. """
 def create_shuffled_dataset(metrics, files_to_combine, universal_sr, clip_seconds):
-		
-		
-	new_dataframe = sound_shuffling.filter_metadata_by_metrics(df_train, metrics=metrics, nr_of_files=files_to_combine)
-	
-	
-	random_files = sound_shuffling.pick_files_at_random(new_dataframe, nr_of_files=files_to_combine)
-	
-	
-	combined_file, labels = sound_shuffling.combine_files(files=random_files, universal_sr=universal_sr, seconds=clip_seconds)
-		
-	return combined_file, labels 
 
-"""Creat actual dataset with spectrograms"""
+
+	new_dataframe = sound_shuffling.filter_metadata_by_metrics(df_train, metrics=metrics, nr_of_files=files_to_combine)
+
+
+	random_files = sound_shuffling.pick_files_at_random(new_dataframe, nr_of_files=files_to_combine)
+
+
+	combined_file, labels = sound_shuffling.combine_files(files=random_files, universal_sr=universal_sr, seconds=clip_seconds)
+
+	return combined_file, labels
+
+""" A function that creates additional shifted data to append to original dataset.
+	"Shift" can be Amplitude, Frequency or Time. """
+def create_shifted_data(shift, universal_sr, clip_seconds):
+
+	# Get random file and its label from dataset
+	random_file, label = create_shuffled_dataset(metrics=[], files_to_combine=1, universal_sr=universal_sr, clip_seconds=clip_seconds)
+
+	if shift == "Amplitude":
+		# Random shift
+		n_steps = float(random.randrange(0, 1500))/100 # lower volume is between 0 and 1, so no negative numbers
+
+		shifted_file = sound_shuffling.amplitude_shift(random_file, n_steps)
+
+	elif shift == "Frequency":
+		# Random shift
+		n_steps = random.randint(-15, 15)
+
+		shifted_file = sound_shuffling.frequency_shift(random_file, universal_sr, n_steps)
+
+	elif shift == "Time":
+		# Random shift
+		n_steps = random.randint(-15, 15)
+
+		shifted_file = sound_shuffling.time_stretch(random_file, n_steps)
+
+	else:
+		print("Wrong type of shift, you can use: Amplitude, Frequency or Time.")
+		exit()
+
+	return shifted_file, label
+
+"""Create actual dataset with spectrograms"""
 if __name__ == "__main__":
-	
+
 	# Create a dictionary for storing the labels that accompany the files
-	### !!!!!!!!!!!!!!!! ### 
+	### !!!!!!!!!!!!!!!! ###
 	### LABELING WERKT NOG NIET ###
 	all_labels = {}
-	
+
 	""" Hyperparameters """
 	dataset_size = 1
 	metrics = ["country"] # If list is empty, it chooses from all the files
@@ -58,37 +89,34 @@ if __name__ == "__main__":
 	universal_sr = 22050
 	clip_seconds = 5 # The length of the new clips in seconds
 	window_width = 512 #
-	
+
 	for n in range(dataset_size):
-	
+
 		combined_audio, labels = create_shuffled_dataset(
-														  metrics=metrics, 
-														  files_to_combine=files_to_combine, 
-														  universal_sr=universal_sr, 
+														  metrics=metrics,
+														  files_to_combine=files_to_combine,
+														  universal_sr=universal_sr,
 														  clip_seconds=clip_seconds
 														  )
-		
+
 		"""Dont know if we want to use the denoised clips yet"""
 # 		denoised_audio = extract_noise(
-# 										combined_audio, 
-# 										universal_sr, 
-# 										window_width=2048, 
-# 										stepsize=512, 
+# 										combined_audio,
+# 										universal_sr,
+# 										window_width=2048,
+# 										stepsize=512,
 # 										verbose=False
 # 										)
-		
+
 		spectr = preprocessing.make_spectrogram(
-												combined_audio, 
-												window_width=512, 
-												spectrogram="normal", 
+												combined_audio,
+												window_width=512,
+												spectrogram="normal",
 												verbose=False
 												)
-		
+
 		PIL_img = Image.fromarray(spectr)
-		
+
 		PIL_img.save(base_dir + "/two_combined_birdsounds_by_country/" + str(n) + ".jpg")
-		
+
 		### HIER NOG LABEL TOEVOEGEN AAN DICTIONARY ###
-	
-	
-	
