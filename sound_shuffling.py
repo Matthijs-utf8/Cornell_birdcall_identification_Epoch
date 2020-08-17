@@ -4,6 +4,7 @@ import librosa
 import librosa.display as librosa_display
 import random
 import warnings
+import sounddevice as sd
 import data_reading
 import birdcodes
 import scipy
@@ -194,7 +195,7 @@ def add_random_background_noise(samples, sampling_rate):
 		random_sample, sr = librosa.load(random_sample_path)
 		
 		#Get background noise from random sample
-		original_noise = ne.get_noise_frames(random_sample, sr)
+		original_noise = ne.get_noise(random_sample, sr)
 		
 	#Cut noise to correct format if there is more noise than samples
 	if original_noise.shape[0] > samples.shape[0]:
@@ -220,6 +221,7 @@ def add_random_background_noise(samples, sampling_rate):
 	#Combine noise and filtered samples
 	samples += const * noise 
 	
+	sd.play(samples)
 	return samples
 	
 if __name__ == "__main__":
