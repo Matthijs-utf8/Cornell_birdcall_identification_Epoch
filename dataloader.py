@@ -17,11 +17,12 @@ from birdcodes import bird_code
 class DataGenerator(keras.utils.Sequence):
     'Generates data for Keras'
 
-    def __init__(self, data_root, batch_size=32, dim=(16, 7, 2048), shuffle=True):
+    def __init__(self, data_root, batch_size=32, dim=(16, 7, 2048), shuffle=True, channel=1):
         'Initialization'
         self.batch_size = batch_size
         self.dim = dim
         self.shuffle = shuffle
+        self.channel = channel
 
         self.data_root = data_root
 
@@ -71,8 +72,13 @@ class DataGenerator(keras.utils.Sequence):
                 if type(data) == np.lib.npyio.NpzFile:
                     data = data["arr_0"]
 
-                    # fix shape issue (250, 257) -> (250, 257, 1)
-                    data = data[:, :, np.newaxis]
+                    if self.channel == 3:
+                        # shape (250, 257) -> (250, 257, 3) aka add channel
+                        data = np.repeat(data[:, :, np.newaxis], 3, -1)
+                    elif self.channel == 1:
+                        # shape (250, 257) -> (250, 257, 1) aka add channel
+                        data = data[:, :, np.newaxis]
+
 
             except ValueError as e:
                 raise ValueError("Malformed numpy file: " + file) from e
@@ -162,7 +168,7 @@ class DataGeneratorHDF5(keras.utils.Sequence):
 class DataGeneratorTestset(keras.utils.Sequence):
     'Generates data for Keras'
 
-    def __init__(self, batch_size=32, use_resnet=False, channel=True):
+    def __init__(self, batch_size=32, use_resnet=False, channel=1):
         """
 
         Args:
@@ -181,6 +187,7 @@ class DataGeneratorTestset(keras.utils.Sequence):
         self.use_resnet = use_resnet
         if use_resnet:
             self.resnet = ResNet50(input_shape=(spectrogram_shape + (3,)), include_top=False)
+
 
         self.__data_generation()
 
@@ -203,12 +210,20 @@ class DataGeneratorTestset(keras.utils.Sequence):
             if self.use_resnet:
                 fragments = preprocess(file, self.resnet)
             else:
-                fragments = tf_fourier(file, display=True)
-                if self.channel:
+                fragments = tf_fourier(file)
+
+                if self.channel == 3:
+                    fragments = np.repeat(fragments[:, :, :, np.newaxis], 3, -1)
+                elif self.channel == 1:
                     # shape (?, 250, 257) -> (?, 250, 257, 1) aka add channel
                     fragments = fragments[:, :, :, np.newaxis]
+                elif self.channel == 0:
+                    pass
+                else:
+                    raise NotImplementedError("Invalid channel")
 
             for i, fragment in enumerate(fragments):
+
                 t_start, t_end = i * 5, i * 5 + 5
                 self.X.append(fragment)
 
