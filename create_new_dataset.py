@@ -9,8 +9,6 @@ import data_reading
 import scipy
 import Noise_Extractor
 import sound_shuffling
-import sklearn
-from PIL import Image
 import preprocessing
 import re
 import pickle
