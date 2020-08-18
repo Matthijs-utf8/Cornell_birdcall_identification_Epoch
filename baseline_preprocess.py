@@ -51,7 +51,7 @@ def preprocess(file_path, feature_extractor: keras.models.Model):
     else:
         return []
 
-def tf_fourier(file_path, display=False):
+def tf_fourier(file_path):
     """
     Loads the audio file, and applies the short-time fourier transform implemented on the GPU by TensorFlow
     """
@@ -66,23 +66,19 @@ def tf_fourier(file_path, display=False):
         pass
     
     # Generate the spectrogram
-    if display:
-        print("Start fft")
-    start = time.time()
     spectrogram = tf.abs(
         tf.signal.stft(tf.reshape(sound, [1, -1]), window_size, window_size)
     )[0]
-    if display:
-        print("Done, time (s):", time.time() - start)
 
     # Split up into slices of (by default) 5 seconds
-    slices = [
-        spectrogram[
-             i      * spectrogram_slices_per_input :
-            (i + 1) * spectrogram_slices_per_input
-        ]
-        for i in range(spectrogram.shape[0] // spectrogram_slices_per_input)
-    ]
+    n_fragmets = spectrogram.shape[0] // spectrogram_slices_per_input
+    slices = np.zeros((n_fragmets, spectrogram_slices_per_input,  spectrogram.shape[1]))
+
+    for i in range(n_fragmets):
+        begin, end = i * spectrogram_slices_per_input, (i + 1) * spectrogram_slices_per_input
+        slices[i] = spectrogram[begin:end]
+
+    print("SHAPE", slices.shape)
 
     return np.array(slices)
 

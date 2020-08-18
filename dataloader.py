@@ -182,6 +182,7 @@ class DataGeneratorTestset(keras.utils.Sequence):
         if use_resnet:
             self.resnet = ResNet50(input_shape=(spectrogram_shape + (3,)), include_top=False)
 
+
         self.__data_generation()
 
     def __len__(self):
@@ -203,12 +204,15 @@ class DataGeneratorTestset(keras.utils.Sequence):
             if self.use_resnet:
                 fragments = preprocess(file, self.resnet)
             else:
-                fragments = tf_fourier(file, display=True)
+                fragments = tf_fourier(file)
+
                 if self.channel:
                     # shape (?, 250, 257) -> (?, 250, 257, 1) aka add channel
+
                     fragments = fragments[:, :, :, np.newaxis]
 
             for i, fragment in enumerate(fragments):
+
                 t_start, t_end = i * 5, i * 5 + 5
                 self.X.append(fragment)
 

@@ -1,4 +1,5 @@
 import argparse
+import time
 
 from tensorflow import keras
 import tensorflow as tf
@@ -27,7 +28,11 @@ if __name__ == '__main__':
         'f1_m': f1_m
     })
 
-    test_generator = dataloader.DataGeneratorTestset()
+    start = time.time()
+    test_generator = dataloader.DataGeneratorTestset(channel=False)
+    print("Dataloader done, time (s):", time.time() - start)
+    print("Evaluating:")
+
     results = model.evaluate(test_generator)
     results = {out: results[i] for i, out in enumerate(model.metrics_names)}
     print("EVALUATION:")
