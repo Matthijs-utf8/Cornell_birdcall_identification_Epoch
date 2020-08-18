@@ -133,7 +133,7 @@ if __name__ == "__main__":
             model = keras.models.Sequential([
                 ResNet50(input_shape=input_shape, include_top=False),
                 layers.GlobalMaxPool2D(input_shape=(8, 9, 2048)),
-                layers.Dense(1024),
+                layers.Dense(1024, activation="relu"),
                 layers.Dense(len(bird_code), activation="sigmoid"),
             ])
 
