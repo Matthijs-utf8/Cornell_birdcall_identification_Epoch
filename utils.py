@@ -1,3 +1,5 @@
+from os import path
+
 from tensorflow.keras import backend as K
 from tensorflow.keras.callbacks import TensorBoard
 
@@ -5,7 +7,10 @@ from tensorflow.keras.callbacks import TensorBoard
 class LRTensorBoard(TensorBoard):
     "Tensorboard that also logs learning rate"
 
-    def __init__(self, log_dir, **kwargs):
+    def __init__(self, log_dir, require_unique_name=True, **kwargs):
+        if require_unique_name and path.exists(log_dir):
+            raise ValueError("Tensorboard name must be unique")
+
         super().__init__(log_dir=log_dir, **kwargs)
 
     def on_epoch_end(self, epoch, logs=None):

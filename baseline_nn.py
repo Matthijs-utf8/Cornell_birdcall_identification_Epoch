@@ -32,13 +32,13 @@ if __name__ == "__main__":
 
     with strategy.scope():
         if args.arch == "cnn":
-            model, input_shape = models.CNN()
+            model, input_shape, channels = models.CNN()
         elif args.arch == "resnet-head":
-            model, input_shape = models.ResNetHead()
+            model, input_shape, channels = models.ResNetHead()
         elif args.arch == "1d-conv":
-            model, input_shape = models.Conv1D()
+            model, input_shape, channels = models.Conv1D()
         elif args.arch == "resnet-full":
-            model, input_shape = models.ResNet()
+            model, input_shape,channels = models.ResNet()
         else:
             raise NotImplementedError("Model type not supported")
 
@@ -51,8 +51,10 @@ if __name__ == "__main__":
         model.compile(loss="binary_crossentropy", optimizer=optimizer,
                       metrics=[keras.metrics.CategoricalAccuracy(), utils.f1_m, utils.precision_m, utils.recall_m])
 
+
     # Data
-    data_generator = dataloader.DataGenerator("spectrograms", batch_size=args.batch_size, dim=input_shape)
+    data_generator = dataloader.DataGenerator("spectrograms", batch_size=args.batch_size, dim=input_shape,
+                                              channels=channels)
     data_generator, data_generator_val = data_generator.split(0.1)
 
     reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.2,

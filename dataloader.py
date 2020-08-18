@@ -17,12 +17,19 @@ from birdcodes import bird_code
 class DataGenerator(keras.utils.Sequence):
     'Generates data for Keras'
 
-    def __init__(self, data_root, batch_size=32, dim=(16, 7, 2048), shuffle=True, channel=1):
-        'Initialization'
+    def __init__(self, data_root, batch_size=32, dim=(16, 7, 2048), shuffle=True, channels=1):
+        """
+        Datagenerator for the training set from a folder of preprocessed numpy files containing spectrograms
+        :param data_root: The data folder
+        :param batch_size: Training batch size
+        :param dim: The input dimensions
+        :param shuffle: Whether to shuffle the data each epoch
+        :param channels: The number of channels to add to the data eiter 0 (no channels), 1 or 3
+        """
         self.batch_size = batch_size
         self.dim = dim
         self.shuffle = shuffle
-        self.channel = channel
+        self.channels = channels
 
         self.data_root = data_root
 
@@ -72,10 +79,10 @@ class DataGenerator(keras.utils.Sequence):
                 if type(data) == np.lib.npyio.NpzFile:
                     data = data["arr_0"]
 
-                    if self.channel == 3:
-                        # shape (250, 257) -> (250, 257, 3) aka add channel
+                    if self.channels == 3:
+                        # shape (250, 257) -> (250, 257, 3) aka add channels
                         data = np.repeat(data[:, :, np.newaxis], 3, -1)
-                    elif self.channel == 1:
+                    elif self.channels == 1:
                         # shape (250, 257) -> (250, 257, 1) aka add channel
                         data = data[:, :, np.newaxis]
 
@@ -102,7 +109,6 @@ class DataGenerator(keras.utils.Sequence):
         self.indexes = train_indices
         test.indexes = test_indices
         return self, test
-
 
 
 class DataGeneratorHDF5(keras.utils.Sequence):
@@ -152,7 +158,6 @@ class DataGeneratorHDF5(keras.utils.Sequence):
         if self.shuffle:
             np.random.shuffle(self.indexes)
 
-
     def split(self, factor=0.1):
         """ Split into training and validation sets, probably very not thread safe """
         split = int(len(self.indexes) * (1 - factor))
@@ -164,11 +169,10 @@ class DataGeneratorHDF5(keras.utils.Sequence):
         return self, test
 
 
-
 class DataGeneratorTestset(keras.utils.Sequence):
     'Generates data for Keras'
 
-    def __init__(self, batch_size=32, use_resnet=False, channel=1):
+    def __init__(self, batch_size=32, use_resnet=False, channels=1):
         """
 
         Args:
@@ -177,7 +181,7 @@ class DataGeneratorTestset(keras.utils.Sequence):
             channel: spectrogram shape if true: (?, 250, 257, 1)  if false: (?, 250, 257)
         """
         self.batch_size = batch_size
-        self.channel = channel
+        self.channels = channels
 
         data_root = data_reading.test_data_base_dir + "example_test_audio/"
         label_root = data_reading.test_data_base_dir + "example_test_audio_summary.csv"
@@ -187,7 +191,6 @@ class DataGeneratorTestset(keras.utils.Sequence):
         self.use_resnet = use_resnet
         if use_resnet:
             self.resnet = ResNet50(input_shape=(spectrogram_shape + (3,)), include_top=False)
-
 
         self.__data_generation()
 
