@@ -21,8 +21,6 @@ import argparse
 
 from birdcodes import bird_code
 
-import sound_shuffling
-
 window_size = 440
 universal_sample_rate = 22000
 spectrogram_slices_per_input = universal_sample_rate * 5 // window_size # = 5 seconds
@@ -67,7 +65,7 @@ def tf_fourier(file_path, args, display=False):
 		sound = resample(sound, int(universal_sample_rate * (len(sound) / sample_rate)))
 		pass
 
-	# If argument for shifting (data augmentation) is set
+	# If argument for shifting (z) is set
 	if args.shift_aug:
 		if args.shift_aug == "amplitude_shift":
 			n_steps = random.randint(0, 15)
@@ -80,23 +78,19 @@ def tf_fourier(file_path, args, display=False):
 			shifted_file = sound_shuffling.time_stretch(sound, n_steps)
 
 	# Generate the spectrogram
-	if display:
-		print("Start fft")
-	start = time.time()
 	spectrogram = tf.abs(
 		tf.signal.stft(tf.reshape(sound, [1, -1]), window_size, window_size)
 	)[0]
-	if display:
-		print("Done, time (s):", time.time() - start)
 
 	# Split up into slices of (by default) 5 seconds
-	slices = [
-		spectrogram[
-			 i      * spectrogram_slices_per_input :
-			(i + 1) * spectrogram_slices_per_input
-		]
-		for i in range(spectrogram.shape[0] // spectrogram_slices_per_input)
-	]
+	n_fragmets = spectrogram.shape[0] // spectrogram_slices_per_input
+	slices = np.zeros((n_fragmets, spectrogram_slices_per_input,  spectrogram.shape[1]))
+
+	for i in range(n_fragmets):
+		begin, end = i * spectrogram_slices_per_input, (i + 1) * spectrogram_slices_per_input
+		slices[i] = spectrogram[begin:end]
+
+	print("SHAPE", slices.shape)
 
 	return np.array(slices)
 
@@ -145,7 +139,7 @@ if __name__ == "__main__":
 				#     fragments = preprocess(path_to_birdsound_dir + file_name, resnet)
 				# else:
 				fragments = tf_fourier(path_to_birdsound_dir + file_name, args)
-				print('SHAPE', fragments.shape)
+
 				# shape (?, 250, 257) -> (?, 250, 257, 1) aka add channel
 				fragments = fragments[:, :, :, np.newaxis]
 
