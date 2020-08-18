@@ -127,8 +127,8 @@ def create_shifted_dataset(shift, universal_sr, clip_seconds, nr_files):
 		new_dataframe = sound_shuffling.filter_metadata_by_metrics(df_train, metrics=[], nr_of_files=1)
 		random_file = sound_shuffling.pick_files_at_random(new_dataframe, nr_of_files=1)
 
-		i = list(random_file["Unnamed: 0"])[0]
-		random_sample, sr = librosa.load(random_file["full_path"][i])
+		# i = list(random_file["Unnamed: 0"])[0]
+		random_sample, sr = librosa.load(random_file["full_path"].loc[0])
 		# print("RANDOM sample \n", random_sample, "\n")
 
 		if shift == "Amplitude":
@@ -185,7 +185,9 @@ if __name__ == "__main__":
 	clip_seconds = 5 # The length of the new clips in seconds
 	window_width = 512 #
 
-	create_shifted_dataset("Amplitude", universal_sr, clip_seconds, 2)
+	random_noise_dataset()
+
+	# create_shifted_dataset("Amplitude", universal_sr, clip_seconds, 2)
 
 	# create_shuffled_dataset(
 	# 					  nr_of_files=dataset_size,
