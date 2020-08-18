@@ -1,59 +1,12 @@
 import argparse
-import numpy as np
 
+import numpy as np
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras import backend as K
-from tensorflow.keras.callbacks import TensorBoard
-
-from tensorflow.keras import layers
-from tensorflow.python.keras.applications.resnet import ResNet50
-
-from baseline_preprocess import spectrogram_shape
-
-# if __name__ == '__main__':
-#     try:
-#         gpu_devices = tf.config.experimental.list_physical_devices('GPU')
-#         for device in gpu_devices:
-#             tf.config.experimental.set_memory_growth(device, True)
-#     except IndexError:
-#         pass
 
 import dataloader
-from birdcodes import bird_code
-
-
-class LRTensorBoard(TensorBoard):
-    "Tensorboard that also logs learning rate"
-
-    def __init__(self, log_dir, **kwargs):
-        super().__init__(log_dir=log_dir, **kwargs)
-
-    def on_epoch_end(self, epoch, logs=None):
-        logs = logs or {}
-        logs.update({'lr': K.eval(self.model.optimizer.lr)})
-        super().on_epoch_end(epoch, logs)
-
-
-def recall_m(y_true, y_pred):
-    true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
-    possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
-    recall = true_positives / (possible_positives + K.epsilon())
-    return recall
-
-
-def precision_m(y_true, y_pred):
-    true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
-    predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
-    precision = true_positives / (predicted_positives + K.epsilon())
-    return precision
-
-
-def f1_m(y_true, y_pred):
-    precision = precision_m(y_true, y_pred)
-    recall = recall_m(y_true, y_pred)
-    return 2 * ((precision * recall) / (precision + recall + K.epsilon()))
-
+import models
+import utils
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -63,76 +16,31 @@ if __name__ == "__main__":
     parser.add_argument("--batch-size", default=512, type=int, help="Training batch size")
     parser.add_argument("--workers", default=1, type=int, help="Number of dataloader workers, may work incorrectly")
     parser.add_argument("--feature-mode", default="spectrogram", type=str,
-        help="Possible values: 'spectrogram' or 'resnet' for preprocessed by resnet base")
+                        help="Possible values: 'spectrogram' or 'resnet' for preprocessed by resnet base")
     parser.add_argument("--arch", default="cnn", type=str,
-                        help="Network architecture, possible values: 'cnn', 'resnet', or '1d-conv' or 'resnet-full")
+                        help="Network architecture, possible values: 'cnn', 'resnet-head', or '1d-conv' or 'resnet-full")
+    parser.add_argument("--arch", default="cnn", type=str,
+                        help="Network architecture, possible values: 'cnn', 'resnet-head', or '1d-conv' or 'resnet-full")
     parser.add_argument("--name", type=str, help="The experiment run name for tensorboard")
 
     args = parser.parse_args()
 
     np.random.seed(args.seed)
-    use_resnet = args.feature_mode == "resnet"
-
-    spectrogram_dim = (250, 257)
-
-    
-    if args.feature_mode == "spectrogram":
-        input_shape = spectrogram_dim + (1,)
-
-    elif args.feature_mode == "1d-conv":
-        input_shape = spectrogram_dim
-    elif args.feature_mode == "resnet":
-        # input_shape = (16, 7, 2048)
-        input_shape = (8, 9, 2048)
-    
-    if args.feature_mode in ["spectrogram", "1d-conv"]:
-        data_generator = dataloader.DataGenerator("spectrograms", batch_size=args.batch_size, dim=input_shape)
-    elif args.feature_mode == "resnet":
-        data_generator = dataloader.DataGenerator("preprocessed2", batch_size=args.batch_size, dim=input_shape)
-
-    data_generator, data_generator_val  = data_generator.split(0.1)
-
-    print("len =", len(bird_code))
 
     strategy = tf.distribute.MirroredStrategy()
     print(f'Number of devices for multigpu strategy: {strategy.num_replicas_in_sync}')
 
     with strategy.scope():
         if args.arch == "cnn":
-            model = keras.models.Sequential([
-                layers.Conv2D(16, (5, 5), activation='relu', input_shape=input_shape),
-                layers.MaxPool2D(),
-                layers.Conv2D(16, (5, 5), activation='relu'),
-                layers.MaxPool2D(),
-                layers.Conv2D(16, (5, 5), activation='relu'),
-                layers.Flatten(),
-                layers.Dense(len(bird_code), activation="sigmoid"),
-            ])
-        elif args.arch == "resnet":
-            model = keras.models.Sequential([
-                layers.GlobalMaxPool2D(input_shape=input_shape),
-                layers.Dense(1024),
-                layers.Dense(len(bird_code), activation="sigmoid"),
-            ])
+            model, input_shape, channels = models.CNN()
+        elif args.arch == "resnet-head":
+            model, input_shape, channels = models.ResNetHead()
         elif args.arch == "1d-conv":
-            model = keras.models.Sequential([
-                layers.Conv1D(256, 3, activation="relu"),
-                layers.MaxPool1D(2),
-                layers.Conv1D(256, 3, activation="relu"),
-                layers.MaxPool1D(2),
-                layers.Conv1D(256, 3, activation="relu"),
-                layers.MaxPool1D(2),
-                layers.Conv1D(256, 3, activation="relu"),
-                layers.Flatten(),
-                layers.Dense(len(bird_code), activation="sigmoid")
-            ])
+            model, input_shape, channels = models.Conv1D()
         elif args.arch == "resnet-full":
-            model = keras.models.Sequential([
-                ResNet50(input_shape=input_shape, include_top=False, weights=None),
-                layers.GlobalMaxPool2D(input_shape=(8, 9, 2048)),
-                layers.Dense(1024),
-                layers.Dense(len(bird_code), activation="sigmoid"),
-            ])
+            model, input_shape,channels = models.ResNet()
+        else:
+            raise NotImplementedError("Model type not supported")
 
         # print("trainable count:", len(model.trainable_variables))
         optimizer = keras.optimizers.Adam(
@@ -141,19 +49,23 @@ if __name__ == "__main__":
         )
 
         model.compile(loss="binary_crossentropy", optimizer=optimizer,
-                      metrics=[keras.metrics.CategoricalAccuracy(), f1_m, precision_m, recall_m])
+                      metrics=[keras.metrics.CategoricalAccuracy(), utils.f1_m, utils.precision_m, utils.recall_m])
+
+
+    # Data
+    data_generator = dataloader.DataGenerator("spectrograms", batch_size=args.batch_size, dim=input_shape,
+                                              channels=channels)
+    data_generator, data_generator_val = data_generator.split(0.1)
 
     reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.2,
                                                   patience=5, cooldown=2, min_lr=1e-9)
 
-    tensorboard_callback = LRTensorBoard(log_dir=f"logs/{args.name}")
+    tensorboard_callback = utils.LRTensorBoard(log_dir=f"logs/{args.name}")
 
-    save_best_callback = keras.callbacks.ModelCheckpoint(filepath="models/"+args.name+".val_f1.{val_f1_m:.3f}.h5",
+    save_best_callback = keras.callbacks.ModelCheckpoint(filepath="models/" + args.name + ".val_f1.{val_f1_m:.3f}.h5",
                                                          save_best_only=True, monitor='val_f1_m')
     # callback = keras.callbacks.EarlyStopping(monitor='val_f1_m', patience=5)
 
     model.fit(data_generator, callbacks=[reduce_lr, tensorboard_callback, save_best_callback],
               epochs=args.epochs, workers=args.workers, validation_data=data_generator_val)
-    model.save("models/"+args.name+".h5")
-
-
+    model.save("models/" + args.name + ".h5")
