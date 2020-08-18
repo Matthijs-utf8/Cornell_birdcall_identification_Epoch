@@ -28,10 +28,25 @@ if __name__ == '__main__':
         'f1_m': f1_m
     })
 
+    input_shape = (250, 257, 1)
+
     start = time.time()
-    test_generator = dataloader.DataGeneratorTestset(channel=False)
+    test_generator = dataloader.DataGeneratorTestset(channel=3)
+    # _, train_generator = dataloader.DataGenerator("spectrograms", batch_size=16, dim=input_shape, channel=1).split(0.003)
+
+
     print("Dataloader done, time (s):", time.time() - start)
     print("Evaluating:")
+
+    # prediction = model.predict(test_generator)
+    #
+    # for i, p in enumerate(prediction):
+    #     if any(p > 0.1):
+    #         print("prediciton", i, p)
+    #     else:
+    #         print("None")
+
+
 
     results = model.evaluate(test_generator)
     results = {out: results[i] for i, out in enumerate(model.metrics_names)}
