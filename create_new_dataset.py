@@ -5,15 +5,15 @@ import librosa
 import random
 import warnings
 import matplotlib.pyplot as plt
+import scipy
+import re
+import pickle
 
 import birdcodes
 import data_reading
-import scipy
 import Noise_Extractor
 import sound_shuffling
 import preprocessing
-import re
-import pickle
 
 ### !!!!!!!!!! ###
 # Comment out the lines below if you want different samples every time
@@ -34,8 +34,14 @@ df_train['full_path'] = base_dir + "train_audio/" + df_train['ebird_code'] + '/'
 df_train.to_csv(base_dir + "train.csv")
 
 """ A function that uses a few methods from sound_shuffling.py to be able to easily create a new shuffled dataset. """
-def create_shuffled_dataset(nr_of_files, metrics, files_to_combine, universal_sr, clip_seconds):
-	
+def create_shuffled_dataset(nr_of_files, files_to_combine, metrics=[], universal_sr=22050, clip_seconds=5):
+	"""
+	:param nr_of_files: int, number of 5 second files that should be created
+	:param metrics: list (or empty list), common metrics that the birdsounds should have
+	:param files_to_combine: int, number of birds to overlap eachother
+	:param universal_sr: int, sampling rate to use (22050)
+	:param clip_seconds: int, number of seconds that the new clip should be
+	"""
 	all_labels = []
 	all_files = []
 	
@@ -74,39 +80,65 @@ def create_shuffled_dataset(nr_of_files, metrics, files_to_combine, universal_sr
 	pickle.dump(labeled_data, f)
 	f.close()
 
+
+"""Method to create a dataset with different levels of noise"""
 def random_noise_dataset():
 
+	# Create folder to store dataset if this folder does not exist yet
 	if not os.path.exists(base_dir + "train_audio_random_noise"):
 		os.mkdir(base_dir + "train_audio_random_noise")
-	
+
+	# Create folders to store audio from different birds
 	for code in birdcodes.bird_code.keys():
 		if not os.path.exists(base_dir + "train_audio_random_noise/" + code):
 			os.mkdir(base_dir + "train_audio_random_noise/" + code)
-	
-	df_train['full_path_random_noise'] = base_dir + "train_audio_random_noise/" + df_train['ebird_code'] + '/random_noise_' + df_train['filename']
-	
-	for i in range(len(df_train['full_path'])):
-		samples, sr = librosa.load(df_train['full_path'][i])
-		samples = sound_shuffling.add_white_noise(samples, target_snr=np.random.normal(4.5, 2.0))
-		
-		preprocessing.write(base_dir + "train_audio_random_noise/" + df_train['ebird_code'][i] + '/random_noise_' + df_train['filename'][i], 22050, samples)
 
+	# Add a full path to dataset in df_train
+	df_train['full_path_random_noise'] = base_dir + "train_audio_random_noise/" + df_train[
+		'ebird_code'] + '/random_noise_' + df_train['filename']
+
+	# Add noise for all audio files in full path
+	for i in range(len(df_train['full_path'])):
+		# Load file
+		samples, sr = librosa.load(df_train['full_path'][i])
+
+		# Add noise to samples from a standard normal distribution
+		samples = sound_shuffling.add_white_noise(samples, target_snr=np.random.normal(4.5, 2.0))
+
+		# Save samples
+		preprocessing.write(base_dir + "train_audio_random_noise/" + df_train['ebird_code'][i] + '/random_noise_' +
+							df_train['filename'][i], 22050, samples)
+
+
+"""Method to create dataset with background noise from other files"""
 def random_background_dataset():
 
+	# Create folder to store dataset if this folder does not exist yet
 	if not os.path.exists(base_dir + "train_audio_random_background"):
 		os.mkdir(base_dir + "train_audio_random_background")
-	
+
+	# Create folders for different birds
 	for code in birdcodes.bird_code.keys():
 		if not os.path.exists(base_dir + "train_audio_random_background/" + code):
 			os.mkdir(base_dir + "train_audio_random_background/" + code)
-	
-	df_train['full_path_random_background'] = base_dir + "train_audio_random_background/" + df_train['ebird_code'] + '/random_background_' + df_train['filename']
-	
+
+	# Adjust df_train to add path to dataset
+	df_train['full_path_random_background'] = base_dir + "train_audio_random_background/" + df_train[
+		'ebird_code'] + '/random_background_' + df_train['filename']
+
+	# Add background noises for all files in full path
 	for i in range(len(df_train['full_path'])):
+		# Load file
 		samples, sr = librosa.load(df_train['full_path'][i])
+
+		# Add background noise
 		samples = sound_shuffling.add_random_background_noise(samples, sr)
-		
-		preprocessing.write(base_dir + "train_audio_random_background/" + df_train['ebird_code'][i] + '/random_background_' + df_train['filename'][i], 22050, samples)
+
+		# Save file
+		preprocessing.write(
+			base_dir + "train_audio_random_background/" + df_train['ebird_code'][i] + '/random_background_' +
+			df_train['filename'][i], 22050, samples)
+
 
 if __name__ == "__main__":
 	

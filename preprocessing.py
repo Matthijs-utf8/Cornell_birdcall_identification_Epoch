@@ -17,9 +17,9 @@ df_train = pd.read_csv(base_dir + "train.csv")
 def normalize(samples, axis=0):
 
 	""""
-	IN: samples: 	array of (x-dimensional) samples
-		axis: 		the axis that is normalized
-	OUT: 			numpy array of normalized samples
+	:param samples: numpy.array, array of (x-dimensional) samples
+	:param axis: int, the axis that is normalized
+	:return: numpy.array, array of normalized samples
 	"""
 
 	# If the data is one dimensional:
@@ -38,10 +38,10 @@ def normalize(samples, axis=0):
 def resample(samples, sampling_rate, universal_sr=22050):
 
 	""""
-	IN: samples: 		1d array of samples (preferably from librosa.load())
-		sampling_rate: 	the sampling rate at which the sound was recorded
-		universal_sr: 	the universal sampling rate that is used (22050)
-	OUT:				A 1d numpy array of resampled sound at the universal sampling rate
+	:param samples: numpy.array, 1d array of samples (preferably from librosa.load())
+	:param sampling_rate: int, the sampling rate at which the sound was recorded
+	:param universal_sr: int, the sampling rate at which the sound should be resampled
+	:return: numpy.array, A 1d numpy array of resampled sound at the universal sampling rate
 	"""
 
 	# If the frequency is already the same as the universal frequency, just skip it.
@@ -73,12 +73,13 @@ def write(f, x, sr=22050, normalized=True):
 def extract_noise(samples, sampling_rate, window_width=2048, step_size=512, verbose=False):
 
 	""""
-	IN: samples: 		1d array of samples (preferably from librosa.load())
-		sampling_rate: 	the sampling rate at which the sound was recorded
-		window_width: 	the width of the window that is used to extract the features from the samples.
-						the features are used to discern between pure noise and non-pure noise.
-		step_size:		the number of samples that the window moves each step.
-		verbose:		set to True if you want to see graphs and text about the results.
+		:param samples: numpy.array, 1d array of samples (preferably from librosa.load())
+		:param sampling_rate: int, the sampling rate at which the sound was recorded
+		:param window_width: int, power of 2,	the width of the window that is used to extract the features from the samples.
+												the features are used to discern between pure noise and non-pure noise.
+		:param step_size: int, power of 2, the number of samples that the window moves each step.
+		:param verbose: bool, set to True if you want to see graphs and text about the results.
+		:return: numpy.arrya, same soundclip as before, but with removed noise
 	"""
 
 	return Noise_Extractor.filter_sound(samples, sampling_rate, window_width=window_width, stepsize=step_size, verbose=verbose)
@@ -87,11 +88,11 @@ def extract_noise(samples, sampling_rate, window_width=2048, step_size=512, verb
 def cut_spectrogram(spectrogram, spectrogram_slices_per_input):
 
 	""""
-	IN: spectrogram: 					A 2d numpy array depicting a spectrogram
-		spectrogram_slices_per_input:	The number of slices that make up a 5 second spectrogram. Calculate with the following formula:
-										int(seconds * (np.ceil(sampling_rate / hop_length)))
-	OUT:A 3d array that contains the spectrogram slices. If the sound does not have a duration that is dividable by 5,
-		the last few seconds will be lost.
+		:param spectrogram: numpy.array, A 2d numpy array depicting a spectrogram
+		:param spectrogram_slices_per_input: int, 	The number of slices that make up a 5 second spectrogram. Calculate with the following formula:
+													int(seconds * (np.ceil(sampling_rate / hop_length)))
+		:return: numpy.array, 	A 3d array that contains the spectrogram slices. If the sound does not have a duration that is dividable by 5,
+								the last few seconds will be lost.
 	"""
 
 	# Split up into slices of (by default) 5 seconds
@@ -106,24 +107,24 @@ def cut_spectrogram(spectrogram, spectrogram_slices_per_input):
 
 
 """ A function to make a specific spectrogram """
-def make_spectrogram(samples, sampling_rate=22050, seconds=5, window_width=512, spectrogram="normal", verbose=False):
+def make_spectrogram(samples, sampling_rate=22050, seconds=5, window_width=512, spectrogram_type="normal", verbose=False):
 
 	"""
-	IN: samples: 		1d array of samples (preferably from librosa.load())
-		sampling_rate: 	the sampling rate at which the sound was recorded
-		seconds:		the number of seconds that the user wants to soundclips to last
-		window_width: 	the number of samples that is used for the short-time-fourier-transform
-		spectrogram:	'normal' or 'mel'
-		verbose:		set to True if you want to see graphs and text about the results.
-	OUT:A 3d array that contains the spectrogram slices. If the sound does not have a duration that is dividable by 5,
-		the last few seconds will be lost.
+		:param samples: numpy.array, 1d array of samples (preferably from librosa.load())
+		:param sampling_rate: int, the sampling rate at which the sound was recorded
+		:param seconds: int, the number of seconds that the user wants to soundclips to last
+		:param window_width: int, number to the power of 2, the number of samples that is used for the short-time-fourier-transform
+		:param spectrogram_type: str, 'normal' or 'mel'
+		:param verbose: bool, set to True if you want to see graphs and text about the results.
+		:return: numpy.array, 	A 3d array that contains the spectrogram slices. If the sound does not have a duration that is dividable by 5,
+								the last few seconds will be lost.
 
 	"""
 	# Define the hop_length with this formula and calculate the number of slices per 5 second clip
 	hop_length = int(window_width/2)
 	spectrogram_slices_per_input = int(seconds * (np.ceil(sampling_rate / hop_length)))
 
-	if spectrogram == "normal":
+	if spectrogram_type == "normal":
 
 		# Get the spectrogram
 		spectr = np.abs(librosa.stft(samples, n_fft=window_width, hop_length=hop_length, win_length=window_width, window="hamm", center=True))
@@ -143,7 +144,7 @@ def make_spectrogram(samples, sampling_rate=22050, seconds=5, window_width=512, 
 		# Return the rescaled and sliced spectrogram
 		return cut_spectrogram(dB_spectr, spectrogram_slices_per_input)
 
-	elif spectrogram == "mel":
+	elif spectrogram_type == "mel":
 
 		# Get the spectrogram
 		mel_spectr = librosa.feature.melspectrogram(samples, n_fft=window_width, hop_length=hop_length, win_length=window_width, window="hamm", center=True)
