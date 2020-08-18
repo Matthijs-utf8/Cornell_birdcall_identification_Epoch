@@ -64,13 +64,8 @@ def create_shuffled_dataset(nr_of_files, metrics, files_to_combine, universal_sr
 		combined_file, labels = sound_shuffling.combine_files(files=random_files, universal_sr=universal_sr, seconds=clip_seconds)
 
 		# Save the files as .mp3 files
-<<<<<<< HEAD
-		preprocessing.write(f=save_dir + "/" + filename + ".mp3", x=combined_file)
-
-=======
 		preprocessing.write(f=save_dir + "/" + filename + ".mp3", x=combined_file, sr=universal_sr)
-		
->>>>>>> master
+
 		# Add labels to the list
 		all_labels.append(labels)
 

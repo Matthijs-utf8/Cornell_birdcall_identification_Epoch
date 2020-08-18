@@ -143,6 +143,10 @@ if __name__ == "__main__":
 				# shape (?, 250, 257) -> (?, 250, 257, 1) aka add channel
 				fragments = fragments[:, :, :, np.newaxis]
 
+				if len(fragments) == 0:
+					print("Skipping short sound file: ", file_name)
+					continue
+
 				# match number of labels to fragments
 				labels = np.array([[bird_id]] * len(fragments))
 				print("Shape", fragments.shape)
@@ -150,7 +154,7 @@ if __name__ == "__main__":
 
 				if "spectrograms" not in f:
 					dataset = f.create_dataset(
-						"spectrograms", np.shape(fragments), np.float32, maxshape=(None,) + spectrogram_shape,
+						"spectrograms", np.shape(fragments), np.float32, maxshape=(None,) + spectrogram_shape + (1,),
 						data=fragments, chunks=True,
 						# compression="gzip"
 					)
