@@ -134,53 +134,53 @@ if __name__ == "__main__":
 	i = 0
 	with h5py.File(args.dir, "w") as f:
 
-	    for birdcode in tqdm(args.bird_codes):
-	        print(birdcode)
-	        bird_id = bird_code[birdcode]
+		for birdcode in tqdm(args.bird_codes):
+			print(birdcode)
+			bird_id = bird_code[birdcode]
 
-	        path_to_birdsound_dir = data_reading.test_data_base_dir + "train_audio/" + birdcode + "/"
+			path_to_birdsound_dir = data_reading.test_data_base_dir + "train_audio/" + birdcode + "/"
 
-	        for file_name in os.listdir(path_to_birdsound_dir):
-	            # if use_resnet:
-	            #     fragments = preprocess(path_to_birdsound_dir + file_name, resnet)
-	            # else:
-	            fragments = tf_fourier(path_to_birdsound_dir + file_name, args)
+			for file_name in os.listdir(path_to_birdsound_dir):
+				# if use_resnet:
+				#     fragments = preprocess(path_to_birdsound_dir + file_name, resnet)
+				# else:
+				fragments = tf_fourier(path_to_birdsound_dir + file_name, args)
+				print('SHAPE', fragments.shape)
+				# shape (?, 250, 257) -> (?, 250, 257, 1) aka add channel
+				fragments = fragments[:, :, :, np.newaxis]
 
-	            # shape (?, 250, 257) -> (?, 250, 257, 1) aka add channel
-	            fragments = fragments[:, :, :, np.newaxis]
+				# match number of labels to fragments
+				labels = np.array([[bird_id]] * len(fragments))
+				print("Shape", fragments.shape)
+				print("Shape label", labels.shape)
 
-	            # match number of labels to fragments
-	            labels = np.array([[bird_id]] * len(fragments))
-	            print("Shape", fragments.shape)
-	            print("Shape label", labels.shape)
+				if "spectrograms" not in f:
+					dataset = f.create_dataset(
+						"spectrograms", np.shape(fragments), np.float32, maxshape=(None,) + spectrogram_shape,
+						data=fragments, chunks=True,
+						# compression="gzip"
+					)
+					max_birds_per_segment = 20
+					label_set = f.create_dataset(
+						"labels", np.shape(labels), np.int, maxshape=(None, max_birds_per_segment), data=labels, chunks=True
+					)
+				else:
+					shape = np.array(dataset.shape)
+					shape[0] += fragments.shape[0]
+					dataset.resize(shape)
+					dataset[-fragments.shape[0]:, ...] = fragments
 
-	            if "spectrograms" not in f:
-	                dataset = f.create_dataset(
-	                    "spectrograms", np.shape(fragments), np.float32, maxshape=(None,) + spectrogram_shape,
-	                    data=fragments, chunks=True,
-	                    # compression="gzip"
-	                )
-	                max_birds_per_segment = 20
-	                label_set = f.create_dataset(
-	                    "labels", np.shape(labels), np.int, maxshape=(None, max_birds_per_segment), data=labels, chunks=True
-	                )
-	            else:
-	                shape = np.array(dataset.shape)
-	                shape[0] += fragments.shape[0]
-	                dataset.resize(shape)
-	                dataset[-fragments.shape[0]:, ...] = fragments
+					shape = np.array(label_set.shape)
+					shape[0] += labels.shape[0]
+					label_set.resize(shape)
+					label_set[-labels.shape[0]:, ...] = labels
 
-	                shape = np.array(label_set.shape)
-	                shape[0] += labels.shape[0]
-	                label_set.resize(shape)
-	                label_set[-labels.shape[0]:, ...] = labels
+			i += 1
+			if i == 3:
+				break
 
-	        i += 1
-	        if i == 3:
-	            break
-
-	    dataset.attrs["version"] = DATASET_VERSION
-	    dataset.attrs["feature_mode"] = args.feature_mode
-	    dataset.attrs["info"] = args.info
-	    dataset.attrs["creation"] = datetime.datetime.now()
-	    dataset.attrs["bird_code"] = bird_code
+		dataset.attrs["version"] = DATASET_VERSION
+		dataset.attrs["feature_mode"] = args.feature_mode
+		dataset.attrs["info"] = args.info
+		dataset.attrs["creation"] = datetime.datetime.now()
+		dataset.attrs["bird_code"] = bird_code
