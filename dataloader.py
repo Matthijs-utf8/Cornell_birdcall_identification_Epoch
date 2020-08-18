@@ -174,11 +174,11 @@ class DataGeneratorTestset(keras.utils.Sequence):
 
     def __init__(self, batch_size=32, use_resnet=False, channels=1):
         """
-
+        Create dataloader for Cornell test data.
         Args:
             batch_size:
             use_resnet:
-            channel: spectrogram shape if true: (?, 250, 257, 1)  if false: (?, 250, 257)
+            channels: spectrogram shape if true: (?, 250, 257, channels)  if false: (?, 250, 257)
         """
         self.batch_size = batch_size
         self.channels = channels
@@ -215,12 +215,12 @@ class DataGeneratorTestset(keras.utils.Sequence):
             else:
                 fragments = tf_fourier(file)
 
-                if self.channel == 3:
+                if self.channels == 3:
                     fragments = np.repeat(fragments[:, :, :, np.newaxis], 3, -1)
-                elif self.channel == 1:
+                elif self.channels == 1:
                     # shape (?, 250, 257) -> (?, 250, 257, 1) aka add channel
                     fragments = fragments[:, :, :, np.newaxis]
-                elif self.channel == 0:
+                elif self.channels in [0, False, None]:
                     pass
                 else:
                     raise NotImplementedError("Invalid channel")
