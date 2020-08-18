@@ -78,7 +78,8 @@ if __name__ == "__main__":
     
     if args.feature_mode == "spectrogram":
         input_shape = spectrogram_dim + (1,)
-
+    if args.feature_mode == "spectrogram_3channel":
+        input_shape = spectrogram_dim + (3,)
     elif args.feature_mode == "1d-conv":
         input_shape = spectrogram_dim
     elif args.feature_mode == "resnet":
@@ -87,6 +88,8 @@ if __name__ == "__main__":
     
     if args.feature_mode in ["spectrogram", "1d-conv"]:
         data_generator = dataloader.DataGenerator("spectrograms", batch_size=args.batch_size, dim=input_shape)
+    elif args.feature_mode in ["spectrogram_3channel"]:
+        data_generator = dataloader.DataGenerator("spectrograms", batch_size=args.batch_size, dim=input_shape, channel=3)
     elif args.feature_mode == "resnet":
         data_generator = dataloader.DataGenerator("preprocessed2", batch_size=args.batch_size, dim=input_shape)
 
@@ -128,7 +131,7 @@ if __name__ == "__main__":
             ])
         elif args.arch == "resnet-full":
             model = keras.models.Sequential([
-                ResNet50(input_shape=input_shape, include_top=False, weights=None),
+                ResNet50(input_shape=input_shape, include_top=False),
                 layers.GlobalMaxPool2D(input_shape=(8, 9, 2048)),
                 layers.Dense(1024),
                 layers.Dense(len(bird_code), activation="sigmoid"),
@@ -148,8 +151,7 @@ if __name__ == "__main__":
 
     tensorboard_callback = LRTensorBoard(log_dir=f"logs/{args.name}")
 
-    save_best_callback = keras.callbacks.ModelCheckpoint(filepath="models/"+args.name+".val_f1.{val_f1_m:.3f}.h5",
-                                                         save_best_only=True, monitor='val_f1_m')
+    save_best_callback = keras.callbacks.ModelCheckpoint(filepath="models/"+args.name+"epoch.{epoch}.val_f1.{val_f1_m:.3f}.h5", monitor='val_f1_m')
     # callback = keras.callbacks.EarlyStopping(monitor='val_f1_m', patience=5)
 
     model.fit(data_generator, callbacks=[reduce_lr, tensorboard_callback, save_best_callback],
