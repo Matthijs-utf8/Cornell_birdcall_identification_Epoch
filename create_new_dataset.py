@@ -14,6 +14,7 @@ from PIL import Image
 import preprocessing
 import re
 import pickle
+import birdcodes
 
 ### !!!!!!!!!! ###
 # Comment out the lines below if you want different samples every time
@@ -123,36 +124,42 @@ def create_shifted_dataset(shift, universal_sr, clip_seconds, nr_files):
 	for _ in range(nr_files):
 
 		# Get the sorted dataframe and pick ONE random file from it
-		new_dataframe = sound_shuffling.filter_metadata_by_metrics(df_train, metrics=None, nr_of_files=1)
+		new_dataframe = sound_shuffling.filter_metadata_by_metrics(df_train, metrics=[], nr_of_files=1)
 		random_file = sound_shuffling.pick_files_at_random(new_dataframe, nr_of_files=1)
+
+		i = list(random_file["Unnamed: 0"])[0]
+		random_sample, sr = librosa.load(random_file["full_path"][i])
+		# print("RANDOM sample \n", random_sample, "\n")
 
 		if shift == "Amplitude":
 			# Random shift
-			n_steps = float(random.randrange(0, 1500))/100 # lower volume is between 0 and 1, so no negative numbers
-
-			shifted_file = sound_shuffling.amplitude_shift(random_file, n_steps)
+			# n_steps = float(random.randrange(0, 1500))/100 # lower volume is between 0 and 1, so no negative numbers
+			n_steps = random.randint(0, 15)
+			shifted_file = sound_shuffling.amplitude_shift(random_sample, n_steps)
 
 		elif shift == "Frequency":
 			# Random shift
 			n_steps = random.randint(-15, 15)
 
-			shifted_file = sound_shuffling.frequency_shift(random_file, universal_sr, n_steps)
+			shifted_file = sound_shuffling.frequency_shift(random_sample, universal_sr, n_steps)
 
 		elif shift == "Time":
 			# Random shift
 			n_steps = random.randint(-15, 15)
 
-			shifted_file = sound_shuffling.time_stretch(random_file, n_steps)
+			shifted_file = sound_shuffling.time_stretch(random_sample, n_steps)
 
 		else:
 			print("Wrong type of shift, you can use: Amplitude, Frequency or Time.")
 			exit()
 
+		print("SHIFTED sample \n", shifted_file, "\n")
+
 		# Create a new filename
 		filename = random_file["filename"] + "_" + str(shift) + "_shifted"
 
 		# Save the files as .mp3 files
-		preprocessing.write(f=save_dir + "/" + filename + ".mp3", x=shifted_file)
+		preprocessing.write(f=save_dir + "/" + filename + ".mp3", sr=universal_sr, x=shifted_file)
 
 		# Add the file and label to the lists
 		all_files.append(filename + ".mp3")
@@ -163,6 +170,7 @@ def create_shifted_dataset(shift, universal_sr, clip_seconds, nr_files):
 	f = open(save_dir + "/dict.pkl","wb")
 	pickle.dump(labeled_data, f)
 	f.close()
+
 	return
 
 if __name__ == "__main__":
@@ -177,15 +185,17 @@ if __name__ == "__main__":
 	clip_seconds = 5 # The length of the new clips in seconds
 	window_width = 512 #
 
-	create_shuffled_dataset(
-						  nr_of_files=dataset_size,
-						  metrics=metrics,
-						  files_to_combine=files_to_combine,
-						  universal_sr=universal_sr,
-						  clip_seconds=clip_seconds
-						  )
+	create_shifted_dataset("Amplitude", universal_sr, clip_seconds, 2)
 
-	"""Dont know if we want to use the denoised clips yet"""
+	# create_shuffled_dataset(
+	# 					  nr_of_files=dataset_size,
+	# 					  metrics=metrics,
+	# 					  files_to_combine=files_to_combine,
+	# 					  universal_sr=universal_sr,
+	# 					  clip_seconds=clip_seconds
+	# 					  )
+
+	# """Dont know if we want to use the denoised clips yet"""
 # 		denoised_audio = extract_noise(
 # 										combined_audio,
 # 										universal_sr,
