@@ -5,12 +5,12 @@ import librosa
 import random
 import warnings
 import matplotlib.pyplot as plt
+
+import birdcodes
 import data_reading
 import scipy
 import Noise_Extractor
 import sound_shuffling
-import sklearn
-from PIL import Image
 import preprocessing
 import re
 import pickle
@@ -30,8 +30,9 @@ df_train = pd.read_csv(base_dir + "train.csv")
 
 ####### !!!!!!!!!!!!!!! ##########
 ####### Run these two lines below once if you've never run this file before. It adds a filepath to each file in train.csv #########
-# df_train['full_path'] = base_dir + "train_audio/" + df_train['ebird_code'] + '/' + df_train['filename']
-# df_train.to_csv(base_dir + "train.csv")
+
+df_train['full_path'] = base_dir + "train_audio/" + df_train['ebird_code'] + '/' + df_train['filename']
+df_train.to_csv(base_dir + "train.csv")
 
 """ A function that uses a few methods from sound_shuffling.py to be able to easily create a new shuffled dataset. """
 def create_shuffled_dataset(nr_of_files, metrics, files_to_combine, universal_sr, clip_seconds):
@@ -63,8 +64,13 @@ def create_shuffled_dataset(nr_of_files, metrics, files_to_combine, universal_sr
 		combined_file, labels = sound_shuffling.combine_files(files=random_files, universal_sr=universal_sr, seconds=clip_seconds)
 
 		# Save the files as .mp3 files
+<<<<<<< HEAD
 		preprocessing.write(f=save_dir + "/" + filename + ".mp3", x=combined_file)
 
+=======
+		preprocessing.write(f=save_dir + "/" + filename + ".mp3", x=combined_file, sr=universal_sr)
+		
+>>>>>>> master
 		# Add labels to the list
 		all_labels.append(labels)
 
@@ -178,7 +184,7 @@ if __name__ == "__main__":
 	# Create a dictionary for storing the labels that accompany the files
 
 	""" Hyperparameters """
-	dataset_size = 1
+	dataset_size = 20_000
 	metrics = [] # If list is empty, it chooses from all the files
 	files_to_combine = 2 # Number of files to merge each time
 	universal_sr = 22050
