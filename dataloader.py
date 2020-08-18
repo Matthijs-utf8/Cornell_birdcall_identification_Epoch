@@ -163,6 +163,31 @@ class DataGeneratorHDF5(keras.utils.Sequence):
         test.indexes = test_indices
         return self, test
 
+    @staticmethod
+    def from_multiple():
+        raise NotImplementedError()
+        file_names_to_concatenate = ['1.h5', '2.h5', '3.h5', '4.h5']
+        entry_key = 'data'  # where the data is inside of the source files.
+
+        sources = []
+        total_length = 0
+        for i, filename in enumerate(file_names_to_concatenate):
+            with h5py.File(file_names_to_concatenate[i], 'r') as activeData:
+                vsource = h5py.VirtualSource(activeData[entry_key])
+                total_length += vsource.shape[0]
+                sources.append(vsource)
+
+        layout = h5py.VirtualLayout(shape=(total_length,),
+                                    dtype=np.float)
+
+        offset = 0
+        for vsource in sources:
+            length = vsource.shape[0]
+            layout[offset: offset + length] = vsource
+            offset += length
+
+        with h5py.File("VDS_con.h5", 'w', libver='latest') as f:
+            f.create_virtual_dataset(entry_key, layout, fillvalue=0)
 
 
 class DataGeneratorTestset(keras.utils.Sequence):
