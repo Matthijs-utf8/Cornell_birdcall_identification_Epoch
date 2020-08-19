@@ -35,6 +35,7 @@ class DataGenerator(keras.utils.Sequence):
 
         # Note: if split into training and test sets, these may not  be the same shape
         self.files = glob.glob(f"{data_root}/*")
+        assert len(self.files), f"{data_root} not found"
         self.indexes = np.arange(len(self.files))
 
         self.on_epoch_end()
@@ -53,6 +54,8 @@ class DataGenerator(keras.utils.Sequence):
 
         # Generate data
         X, y = self.__data_generation(files_temp)
+
+        assert len(X), f"Empty batch {len(self)} {index} {index * self.batch_size}"
 
         return X, y
 
@@ -91,7 +94,8 @@ class DataGenerator(keras.utils.Sequence):
                 raise ValueError("Malformed numpy file: " + file) from e
 
             try:
-                X[i,] = np.reshape(data, self.dim)
+                # X[i,] = np.reshape(data, self.dim)
+                X[i,] = data
             except ValueError as e:
                 raise ValueError("Cannot reshape data from file: " + file + ", with shape: " + str(data.shape)) from e
 
