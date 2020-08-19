@@ -67,7 +67,14 @@ def tf_fourier(file_path, args, display=False):
 		sound = resample(sound, int(universal_sample_rate * (len(sound) / sample_rate)))
 		pass
 
-	# If argument for shifting (z) is set
+	# If argument for noise addition is set, adds random white- or background noise
+	if args.noise_aug:
+		if args.noise_aug == "white_noise":
+			sound = sound_shuffling.add_white_noise(sound, target_snr=np.random.normal(4.5, 2.0))
+		if args.noise_aug == "background_noise":
+			sound = sound_shuffling.add_random_background_noise(sound, sample_rate)
+
+	# If argument for shifting is set, shifts amplitude, frequency or time randomly
 	if args.shift_aug:
 		if args.shift_aug == "amplitude_shift":
 			n_steps = random.randint(0, 15)
@@ -112,6 +119,7 @@ if __name__ == "__main__":
 	parser.add_argument("--info", type=str, help="Description to add to hdf5 file metadata")
 	parser.add_argument("-b", "--bird_codes", nargs="*", default=[], type=str, help="List of birdcodes indicating which files need to be processed")
 	parser.add_argument("--shift_aug", type=str, default=None, help="Possible values: 'amplitude_shift, 'frequency_shift' or 'time_stretch'")
+	parser.add_argument("--noise_aug", type=str, default=None, help="Possible values: 'white_noise', 'background_noise' ")
 	args = parser.parse_args()
 
 
