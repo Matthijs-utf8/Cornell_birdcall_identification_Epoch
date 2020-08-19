@@ -5,3 +5,5 @@ preprocessed
 preprocessed2
 spectrograms/
 baseline.tf/
+.idea/
+logs/
