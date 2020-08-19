@@ -14,10 +14,12 @@ import numpy as np
 from scipy.signal import resample
 import librosa
 from matplotlib import pyplot as plt
+import random
 
 from Noise_Extractor import filter_sound, get_frames
 import data_reading
 import argparse
+import sound_shuffling
 
 from birdcodes import bird_code
 
@@ -73,7 +75,7 @@ def tf_fourier(file_path, args, display=False):
 		if args.shift_aug == "frequency_shift":
 			n_steps = random.randint(-15, 15)
 			sound = sound_shuffling.frequency_shift(sound, sample_rate, n_steps)
-		if arg.shift_aug == "time_stretch":
+		if args.shift_aug == "time_stretch":
 			n_steps = random.randint(-15, 15)
 			shifted_file = sound_shuffling.time_stretch(sound, n_steps)
 
