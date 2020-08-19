@@ -2,10 +2,13 @@ import argparse
 import time
 
 from tensorflow import keras
+from tensorflow.keras import backend as K
 import tensorflow as tf
+import numpy as np
 
 import dataloader
-from baseline_nn import recall_m, precision_m, f1_m
+# from utils import recall_m, precision_m, f1_m
+import birdcodes
 
 # if __name__ == '__main__':
 #     try:
@@ -15,6 +18,30 @@ from baseline_nn import recall_m, precision_m, f1_m
 #     except IndexError:
 #         pass
 
+# confidence_boost = 1.5
+confidence_boost = 1
+
+
+def recall_m(y_true, y_pred):
+    y_pred *= confidence_boost
+    true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+    possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
+    recall = true_positives / (possible_positives + K.epsilon())
+    return recall
+
+
+def precision_m(y_true, y_pred):
+    y_pred *= confidence_boost
+    true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+    predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
+    precision = true_positives / (predicted_positives + K.epsilon())
+    return precision
+
+
+def f1_m(y_true, y_pred):
+    precision = precision_m(y_true, y_pred)
+    recall = recall_m(y_true, y_pred)
+    return 2 * ((precision * recall) / (precision + recall + K.epsilon()))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -28,27 +55,41 @@ if __name__ == '__main__':
         'f1_m': f1_m
     })
 
-    input_shape = (250, 257, 1)
+    input_shape = (250, 257, 3)
 
     start = time.time()
-    test_generator = dataloader.DataGeneratorTestset(channel=3)
-    # _, train_generator = dataloader.DataGenerator("spectrograms", batch_size=16, dim=input_shape, channel=1).split(0.003)
+    bsize = 32
+    test_generator = dataloader.DataGeneratorTestset(channels=3, batch_size=bsize)
+    _, train_generator = dataloader.DataGenerator("spectrograms", batch_size=bsize, dim=input_shape, channels=3, shuffle=False).split(0.003)
+
+    # switch here
+    generator = train_generator
 
 
     print("Dataloader done, time (s):", time.time() - start)
     print("Evaluating:")
 
-    # prediction = model.predict(test_generator)
-    #
-    # for i, p in enumerate(prediction):
-    #     if any(p > 0.1):
-    #         print("prediciton", i, p)
-    #     else:
-    #         print("None")
+    prediction = model.predict(generator)
+
+    count = 0
+    for i, p in enumerate(prediction):
+        labels = generator[i//bsize][1][i%bsize] # select batch, select labels, select sample
+        label_idx = np.where(labels)[0]
+
+        p *= confidence_boost
+        count += K.sum(K.round(K.clip(p, 0, 1)))
+        predicted_positives = K.round(K.clip(p, 0, 1)).numpy().astype(np.int)
+        idx, = np.where(predicted_positives)
+        predicted_birds = [birdcodes.inverted_bird_code[m] for m in idx]
+
+        print("prediciton", i, predicted_birds, "prob", p[idx], "label", [birdcodes.inverted_bird_code[x] for x in label_idx])
+
+
+    print("Number of predicted positives", count.numpy())
 
 
 
-    results = model.evaluate(test_generator)
+    results = model.evaluate(generator)
     results = {out: results[i] for i, out in enumerate(model.metrics_names)}
     print("EVALUATION:")
     padding = max(map(len, results))
