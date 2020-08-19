@@ -88,9 +88,13 @@ exit scroll with `q`
 
 
 # Test data evaluation
-Example test data evaluation command:
+Example test data evaluation on GPU 1 command:
 
 `CUDA_VISIBLE_DEVICES=1 python evaluate.py models/resnet_run0.h5`
+
+Example test data evaluation on CPU command:
+
+`CUDA_VISIBLE_DEVICES= python evaluate.py models/resnet_run0.h5`
 
 # Tips
 Monitor the server with `htop` and `nvtop`.
