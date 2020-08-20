@@ -10,24 +10,33 @@ from tensorflow.python.keras.applications.resnet import ResNet50
 from tqdm import tqdm
 
 import data_reading
-from baseline_preprocess import preprocess, spectrogram_shape, tf_fourier
+from baseline_preprocess import preprocess, spectrogram_shape
 from birdcodes import bird_code
+import preprocessing
 
 
 class DataGenerator(keras.utils.Sequence):
     'Generates data for Keras'
 
-    def __init__(self, data_root, batch_size=32, dim=(16, 7, 2048), shuffle=True, channel=1):
-        'Initialization'
+    def __init__(self, data_root, batch_size=32, dim=(16, 7, 2048), shuffle=True, channels=1):
+        """
+        Datagenerator for the training set from a folder of preprocessed numpy files containing spectrograms
+        :param data_root: The data folder
+        :param batch_size: Training batch size
+        :param dim: The input dimensions
+        :param shuffle: Whether to shuffle the data each epoch
+        :param channels: The number of channels to add to the data eiter 0 (no channels), 1 or 3
+        """
         self.batch_size = batch_size
         self.dim = dim
         self.shuffle = shuffle
-        self.channel = channel
+        self.channels = channels
 
         self.data_root = data_root
 
         # Note: if split into training and test sets, these may not  be the same shape
         self.files = glob.glob(f"{data_root}/*")
+        assert len(self.files), f"{data_root} not found"
         self.indexes = np.arange(len(self.files))
 
         self.on_epoch_end()
@@ -46,6 +55,8 @@ class DataGenerator(keras.utils.Sequence):
 
         # Generate data
         X, y = self.__data_generation(files_temp)
+
+        assert len(X), f"Empty batch {len(self)} {index} {index * self.batch_size}"
 
         return X, y
 
@@ -72,10 +83,10 @@ class DataGenerator(keras.utils.Sequence):
                 if type(data) == np.lib.npyio.NpzFile:
                     data = data["arr_0"]
 
-                    if self.channel == 3:
-                        # shape (250, 257) -> (250, 257, 3) aka add channel
+                    if self.channels == 3:
+                        # shape (250, 257) -> (250, 257, 3) aka add channels
                         data = np.repeat(data[:, :, np.newaxis], 3, -1)
-                    elif self.channel == 1:
+                    elif self.channels == 1:
                         # shape (250, 257) -> (250, 257, 1) aka add channel
                         data = data[:, :, np.newaxis]
 
@@ -84,7 +95,8 @@ class DataGenerator(keras.utils.Sequence):
                 raise ValueError("Malformed numpy file: " + file) from e
 
             try:
-                X[i,] = np.reshape(data, self.dim)
+                # X[i,] = np.reshape(data, self.dim)
+                X[i,] = data
             except ValueError as e:
                 raise ValueError("Cannot reshape data from file: " + file + ", with shape: " + str(data.shape)) from e
 
@@ -102,7 +114,6 @@ class DataGenerator(keras.utils.Sequence):
         self.indexes = train_indices
         test.indexes = test_indices
         return self, test
-
 
 
 class DataGeneratorHDF5(keras.utils.Sequence):
@@ -152,7 +163,6 @@ class DataGeneratorHDF5(keras.utils.Sequence):
         if self.shuffle:
             np.random.shuffle(self.indexes)
 
-
     def split(self, factor=0.1):
         """ Split into training and validation sets, probably very not thread safe """
         split = int(len(self.indexes) * (1 - factor))
@@ -189,20 +199,19 @@ class DataGeneratorHDF5(keras.utils.Sequence):
         with h5py.File("VDS_con.h5", 'w', libver='latest') as f:
             f.create_virtual_dataset(entry_key, layout, fillvalue=0)
 
-
 class DataGeneratorTestset(keras.utils.Sequence):
     'Generates data for Keras'
 
-    def __init__(self, batch_size=32, use_resnet=False, channel=1):
+    def __init__(self, batch_size=32, use_resnet=False, channels=1):
         """
-
+        Create dataloader for Cornell test data.
         Args:
             batch_size:
             use_resnet:
-            channel: spectrogram shape if true: (?, 250, 257, 1)  if false: (?, 250, 257)
+            channels: spectrogram shape if true: (?, 257, 463, channels)  if false: (?, 257, 463)
         """
         self.batch_size = batch_size
-        self.channel = channel
+        self.channels = channels
 
         data_root = data_reading.test_data_base_dir + "example_test_audio/"
         label_root = data_reading.test_data_base_dir + "example_test_audio_summary.csv"
@@ -212,7 +221,6 @@ class DataGeneratorTestset(keras.utils.Sequence):
         self.use_resnet = use_resnet
         if use_resnet:
             self.resnet = ResNet50(input_shape=(spectrogram_shape + (3,)), include_top=False)
-
 
         self.__data_generation()
 
@@ -235,14 +243,14 @@ class DataGeneratorTestset(keras.utils.Sequence):
             if self.use_resnet:
                 fragments = preprocess(file, self.resnet)
             else:
-                fragments = tf_fourier(file)
+                fragments = preprocessing.load_spectrograms(file)
 
-                if self.channel == 3:
+                if self.channels == 3:
                     fragments = np.repeat(fragments[:, :, :, np.newaxis], 3, -1)
-                elif self.channel == 1:
+                elif self.channels == 1:
                     # shape (?, 250, 257) -> (?, 250, 257, 1) aka add channel
                     fragments = fragments[:, :, :, np.newaxis]
-                elif self.channel == 0:
+                elif self.channels in [0, False, None]:
                     pass
                 else:
                     raise NotImplementedError("Invalid channel")

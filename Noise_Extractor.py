@@ -6,13 +6,10 @@ import sklearn
 import warnings
 import data_reading
 import noisereduce as nr
+import preprocessing
 
 # A function that prevents warnings when loading in files with librosa
 warnings.simplefilter("ignore")
-
-# A helper function for normalizing signals. It helps with viualisation to get everything on the same scale.
-def normalize(x, axis=0):
-	return sklearn.preprocessing.minmax_scale(x, axis=axis)
 
 # A function for calculating autocorrelation of a signal
 def autocorr(x, t=1):
@@ -131,22 +128,22 @@ def get_noise_frames(samples, sampling_rate, window_width=2048, stepsize=512, ve
 		# Plot the signal versus the signal energy
 		plt.figure(figsize=(20,12))
 		plt.title("Energy whole signal")
-		plt.plot(t_soundwave, normalize(samples), alpha=0.5)
-		plt.plot(t_windowed_features, normalize(energies))
+		plt.plot(t_soundwave, preprocessing.normalize(samples), alpha=0.5)
+		plt.plot(t_windowed_features, preprocessing.normalize(energies))
 		plt.show()
 		
 		# Plot the signal versus the signal energy
 		plt.figure(figsize=(20,12))
 		plt.title("Energy pure noise signal")
-		plt.plot(t_soundwave_noisy, normalize(noisy_frames), alpha=0.5)
-		plt.plot(t_windowed_features_noisy, normalize(noisy_energy) )
+		plt.plot(t_soundwave_noisy, preprocessing.normalize(noisy_frames), alpha=0.5)
+		plt.plot(t_windowed_features_noisy, preprocessing.normalize(noisy_energy) )
 		plt.show()
 		
 		# Plot the signal versus the signal energy
 		plt.figure(figsize=(20,12))
 		plt.title("Energy non pure noise signal")
-		plt.plot(t_soundwave_non_noisy, normalize(non_noisy_frames), alpha=0.5)
-		plt.plot(t_windowed_features_non_noisy, normalize(non_noisy_energy))
+		plt.plot(t_soundwave_non_noisy, preprocessing.normalize(non_noisy_frames), alpha=0.5)
+		plt.plot(t_windowed_features_non_noisy, preprocessing.normalize(non_noisy_energy))
 		plt.show()
 	
 	return np.array(noisy_frames)
@@ -159,7 +156,7 @@ def filter_sound(samples, sampling_rate, window_width=2048, stepsize=512, verbos
 		
 		reduced_noise = nr.reduce_noise(audio_clip=samples, noise_clip=noise, verbose=verbose)
 		
-		return reduced_noise
+		return preprocessing.normalize(reduced_noise)
 	
 	else:
 		
