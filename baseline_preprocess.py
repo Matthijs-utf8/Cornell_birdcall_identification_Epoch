@@ -26,6 +26,7 @@ from Noise_Extractor import filter_sound, get_frames
 import data_reading
 import argparse
 import sound_shuffling
+import preprocessing
 
 from birdcodes import bird_code
 
@@ -46,7 +47,7 @@ def preprocess(file_path, feature_extractor: keras.models.Model):
 	"""
 	Loads the audio file, generates a spectrogram, and applies feature_extractor on it
 	"""
-	spectrograms = tf_fourier(file_path)
+	spectrograms = tf_fourier(file_path, args)
 
 	if spectrograms != []:
 		# Duplicate the single amplitude channel to 3 channels, because ResNet50 expects 3 channels
@@ -68,7 +69,7 @@ def tf_fourier(file_path, args, display=False):
 	except ZeroDivisionError as e:
 		raise ZeroDivisionError("File for error above:", file_path) from e
 
-	# Make sure all files have the same sample rate
+	# Make sure all files have the same sample rate (resampling?)
 	if sample_rate != universal_sample_rate:
 		sound = resample(sound, int(universal_sample_rate * (len(sound) / sample_rate)))
 		pass
@@ -95,6 +96,9 @@ def tf_fourier(file_path, args, display=False):
 		if args.shift_aug == "time_stretch":
 			n_steps = random.randint(-15, 15)
 			shifted_file = sound_shuffling.time_stretch(sound, n_steps)
+
+	# Normalize
+	sound = preprocessing.normalize(sound)
 
 	# Generate the spectrogram
 	spectrogram = tf.abs(
