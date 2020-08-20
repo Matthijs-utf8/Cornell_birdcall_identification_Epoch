@@ -38,7 +38,7 @@ if __name__ == "__main__":
         elif args.arch == "1d-conv":
             model, input_shape, channels = models.Conv1D()
         elif args.arch == "resnet-full":
-            model, input_shape,channels = models.ResNet()
+            model, input_shape, channels = models.ResNet()
         else:
             raise NotImplementedError("Model type not supported")
 

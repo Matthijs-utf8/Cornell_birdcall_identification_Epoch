@@ -10,8 +10,9 @@ from tensorflow.python.keras.applications.resnet import ResNet50
 from tqdm import tqdm
 
 import data_reading
-from baseline_preprocess import preprocess, spectrogram_shape, tf_fourier
+from baseline_preprocess import preprocess, spectrogram_shape
 from birdcodes import bird_code
+import preprocessing
 
 
 class DataGenerator(keras.utils.Sequence):
@@ -182,7 +183,7 @@ class DataGeneratorTestset(keras.utils.Sequence):
         Args:
             batch_size:
             use_resnet:
-            channels: spectrogram shape if true: (?, 250, 257, channels)  if false: (?, 250, 257)
+            channels: spectrogram shape if true: (?, 257, 463, channels)  if false: (?, 257, 463)
         """
         self.batch_size = batch_size
         self.channels = channels
@@ -217,7 +218,7 @@ class DataGeneratorTestset(keras.utils.Sequence):
             if self.use_resnet:
                 fragments = preprocess(file, self.resnet)
             else:
-                fragments = tf_fourier(file)
+                fragments = preprocessing.load_spectrograms(file)
 
                 if self.channels == 3:
                     fragments = np.repeat(fragments[:, :, :, np.newaxis], 3, -1)

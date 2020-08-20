@@ -118,7 +118,6 @@ def make_spectrogram(samples, sampling_rate=22050, seconds=5, window_width=512, 
 		:param verbose: 			bool, set to True if you want to see graphs and text about the results.
 		:return: 					numpy.array, 	A 3d array that contains the spectrogram slices. If the sound does not have a duration that is dividable by 5,
 													the last few seconds will be lost.
-
 	"""
 	# Define the hop_length with this formula and calculate the number of slices per 5 second clip
 	hop_length = int(window_width/2)
@@ -166,8 +165,25 @@ def make_spectrogram(samples, sampling_rate=22050, seconds=5, window_width=512, 
 
 	else:
 
-		raise ValueError("{} does not exist".format(spectrogram))
+		raise ValueError("{} does not exist".format(spectrogram_type))
+
+
+def load_spectrograms(file_path):
+
+	samples, sampling_rate = librosa.load(file_path)
+
+	if sampling_rate != 22050:
+		samples = resample((samples, sampling_rate))
+
+	return make_spectrogram(samples,
+							sampling_rate=22050,
+							seconds=5,
+							window_width=512,
+							spectrogram_type="normal",
+							verbose=False)
 
 if __name__ == "__main__":
-	sounds, sample_r = librosa.load(df_train["full_path"][3])
-	make_spectrogram(samples=sounds, spectrogram_type="normal", verbose=True)
+
+	# sounds, sample_r = librosa.load(df_train["full_path"][3])
+	# print(make_spectrogram(samples=sounds, spectrogram_type="normal", verbose=False).shape)
+	pass

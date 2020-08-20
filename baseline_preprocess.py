@@ -18,6 +18,7 @@ from matplotlib import pyplot as plt
 from Noise_Extractor import filter_sound, get_frames
 import data_reading
 import argparse
+import preprocessing
 
 from birdcodes import bird_code
 
@@ -38,9 +39,10 @@ def preprocess(file_path, feature_extractor: keras.models.Model):
     """
     Loads the audio file, generates a spectrogram, and applies feature_extractor on it
     """
-    spectrograms = tf_fourier(file_path)
+    spectrograms = preprocessing.load_spectrograms(file_path)
 
     if spectrograms != []:
+
         # Duplicate the single amplitude channel to 3 channels, because ResNet50 expects 3 channels
         spectrograms = np.array(spectrograms)
         spectrograms = np.reshape(spectrograms, spectrograms.shape + (1,))
@@ -51,36 +53,6 @@ def preprocess(file_path, feature_extractor: keras.models.Model):
     else:
         return []
 
-def tf_fourier(file_path):
-    """
-    Loads the audio file, and applies the short-time fourier transform implemented on the GPU by TensorFlow
-    """
-    try:
-        sound, sample_rate = librosa.load(file_path)
-    except ZeroDivisionError as e:
-        raise ZeroDivisionError("File for error above:", file_path) from e
-
-    # Make sure all files have the same sample rate
-    if sample_rate != universal_sample_rate:
-        sound = resample(sound, int(universal_sample_rate * (len(sound) / sample_rate)))
-        pass
-    
-    # Generate the spectrogram
-    spectrogram = tf.abs(
-        tf.signal.stft(tf.reshape(sound, [1, -1]), window_size, window_size)
-    )[0]
-
-    # Split up into slices of (by default) 5 seconds
-    n_fragmets = spectrogram.shape[0] // spectrogram_slices_per_input
-    slices = np.zeros((n_fragmets, spectrogram_slices_per_input,  spectrogram.shape[1]))
-
-    for i in range(n_fragmets):
-        begin, end = i * spectrogram_slices_per_input, (i + 1) * spectrogram_slices_per_input
-        slices[i] = spectrogram[begin:end]
-
-    print("SHAPE", slices.shape)
-
-    return np.array(slices)
 
 spectrogram_shape = (250, 257)
 DATASET_VERSION = "1.0.0"
@@ -125,7 +97,7 @@ if __name__ == "__main__":
                 # if use_resnet:
                 #     fragments = preprocess(path_to_birdsound_dir + file_name, resnet)
                 # else:
-                fragments = tf_fourier(path_to_birdsound_dir + file_name)
+                fragments = preprocessing.load_spectrograms(path_to_birdsound_dir + file_name)
 
                 # shape (?, 250, 257) -> (?, 250, 257, 1) aka add channel
                 fragments = fragments[:, :, :, np.newaxis]
