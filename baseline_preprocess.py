@@ -1,3 +1,9 @@
+"""
+baseline_preprocess.py
+File to create hdf5 datasets
+Usage: run it with arguments that specify the wanted dataset
+"""
+
 import datetime
 import time
 
@@ -67,6 +73,10 @@ def tf_fourier(file_path, args, display=False):
 		sound = resample(sound, int(universal_sample_rate * (len(sound) / sample_rate)))
 		pass
 
+	# If argument for shuffle augmentation is set, shuffles data based on a metric
+	if args.shuffle_aug:
+		pass
+
 	# If argument for noise addition is set, adds random white- or background noise
 	if args.noise_aug:
 		if args.noise_aug == "white_noise":
@@ -120,6 +130,7 @@ if __name__ == "__main__":
 	parser.add_argument("-b", "--bird_codes", nargs="*", default=[], type=str, help="List of birdcodes indicating which files need to be processed")
 	parser.add_argument("--shift_aug", type=str, default=None, help="Possible values: 'amplitude_shift, 'frequency_shift' or 'time_stretch'")
 	parser.add_argument("--noise_aug", type=str, default=None, help="Possible values: 'white_noise', 'background_noise' ")
+	parser.add_argument("--shuffle_aug", type=int, default=None, help="Number of files to combine")
 	args = parser.parse_args()
 
 
