@@ -73,13 +73,13 @@ def write(f, x, sr=22050, normalized=True):
 def extract_noise(samples, sampling_rate, window_width=2048, step_size=512, verbose=False):
 
 	""""
-		:param samples: numpy.array, 1d array of samples (preferably from librosa.load())
-		:param sampling_rate: int, the sampling rate at which the sound was recorded
-		:param window_width: int, power of 2,	the width of the window that is used to extract the features from the samples.
+		:param samples: 		numpy.array, 1d array of samples (preferably from librosa.load())
+		:param sampling_rate: 	int, the sampling rate at which the sound was recorded
+		:param window_width: 	int, power of 2,	the width of the window that is used to extract the features from the samples.
 												the features are used to discern between pure noise and non-pure noise.
-		:param step_size: int, power of 2, the number of samples that the window moves each step.
-		:param verbose: bool, set to True if you want to see graphs and text about the results.
-		:return: numpy.arrya, same soundclip as before, but with removed noise
+		:param step_size: 		int, power of 2, the number of samples that the window moves each step.
+		:param verbose: 		bool, set to True if you want to see graphs and text about the results.
+		:return: 				numpy.array, same soundclip as before, but with removed noise
 	"""
 
 	return Noise_Extractor.filter_sound(samples, sampling_rate, window_width=window_width, stepsize=step_size, verbose=verbose)
@@ -88,11 +88,11 @@ def extract_noise(samples, sampling_rate, window_width=2048, step_size=512, verb
 def cut_spectrogram(spectrogram, spectrogram_slices_per_input):
 
 	""""
-		:param spectrogram: numpy.array, A 2d numpy array depicting a spectrogram
-		:param spectrogram_slices_per_input: int, 	The number of slices that make up a 5 second spectrogram. Calculate with the following formula:
-													int(seconds * (np.ceil(sampling_rate / hop_length)))
-		:return: numpy.array, 	A 3d array that contains the spectrogram slices. If the sound does not have a duration that is dividable by 5,
-								the last few seconds will be lost.
+		:param spectrogram:						numpy.array, A 2d numpy array depicting a spectrogram
+		:param spectrogram_slices_per_input: 	int, 	The number of slices that make up a 5 second spectrogram. Calculate with the following formula:
+														int(seconds * (np.ceil(sampling_rate / hop_length)))
+		:return: 								numpy.array, 	A 3d array that contains the spectrogram slices. If the sound does not have a duration
+																that is dividable by 5, the last few seconds will be lost.
 	"""
 
 	# Split up into slices of (by default) 5 seconds
@@ -110,14 +110,14 @@ def cut_spectrogram(spectrogram, spectrogram_slices_per_input):
 def make_spectrogram(samples, sampling_rate=22050, seconds=5, window_width=512, spectrogram_type="normal", verbose=False):
 
 	"""
-		:param samples: numpy.array, 1d array of samples (preferably from librosa.load())
-		:param sampling_rate: int, the sampling rate at which the sound was recorded
-		:param seconds: int, the number of seconds that the user wants to soundclips to last
-		:param window_width: int, number to the power of 2, the number of samples that is used for the short-time-fourier-transform
-		:param spectrogram_type: str, 'normal' or 'mel'
-		:param verbose: bool, set to True if you want to see graphs and text about the results.
-		:return: numpy.array, 	A 3d array that contains the spectrogram slices. If the sound does not have a duration that is dividable by 5,
-								the last few seconds will be lost.
+		:param samples: 			numpy.array, 1d array of samples (preferably from librosa.load())
+		:param sampling_rate: 		int, the sampling rate at which the sound was recorded
+		:param seconds: 			int, the number of seconds that the user wants to soundclips to last
+		:param window_width: 		int, number to the power of 2, the number of samples that is used for the short-time-fourier-transform
+		:param spectrogram_type: 	str, 'normal' or 'mel'
+		:param verbose: 			bool, set to True if you want to see graphs and text about the results.
+		:return: 					numpy.array, 	A 3d array that contains the spectrogram slices. If the sound does not have a duration that is dividable by 5,
+													the last few seconds will be lost.
 
 	"""
 	# Define the hop_length with this formula and calculate the number of slices per 5 second clip
@@ -168,6 +168,6 @@ def make_spectrogram(samples, sampling_rate=22050, seconds=5, window_width=512, 
 
 		raise ValueError("{} does not exist".format(spectrogram))
 
-
-sounds, sample_r = librosa.load(df_train["full_path"][3])
-make_spectrogram(samples=sounds, spectrogram="normal", verbose=False)
+if __name__ == "__main__":
+	sounds, sample_r = librosa.load(df_train["full_path"][3])
+	make_spectrogram(samples=sounds, spectrogram_type="normal", verbose=True)
