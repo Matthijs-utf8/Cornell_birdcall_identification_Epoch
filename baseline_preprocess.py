@@ -78,12 +78,18 @@ def tf_fourier(file_path, args, display=False):
 	if args.shuffle_aug:
 		pass
 
-	# If argument for noise addition is set, adds random white- or background noise
+	# If argument for noise addition is set, adds random white- or background noise or removes noise
 	if args.noise_aug:
 		if args.noise_aug == "white_noise":
 			sound = sound_shuffling.add_white_noise(sound, target_snr=np.random.normal(4.5, 2.0))
 		if args.noise_aug == "background_noise":
 			sound = sound_shuffling.add_random_background_noise(sound, sample_rate)
+		if args.no_noise = "no_noise":
+			sound = preprocessing.extract_noise(sound,
+												sample_rate,
+												window_width=2048,
+												step_size=512,
+												verbose=False)
 
 	# If argument for shifting is set, shifts amplitude, frequency or time randomly
 	if args.shift_aug:
@@ -133,18 +139,16 @@ if __name__ == "__main__":
 	parser.add_argument("--info", type=str, help="Description to add to hdf5 file metadata")
 	parser.add_argument("-b", "--bird_codes", nargs="*", default=[], type=str, help="List of birdcodes indicating which files need to be processed")
 	parser.add_argument("--shift_aug", type=str, default=None, help="Possible values: 'amplitude_shift, 'frequency_shift' or 'time_stretch'")
-	parser.add_argument("--noise_aug", type=str, default=None, help="Possible values: 'white_noise', 'background_noise' ")
+	parser.add_argument("--noise_aug", type=str, default=None, help="Possible values: 'white_noise', 'background_noise', 'no_noise' ")
 	parser.add_argument("--shuffle_aug", type=int, default=None, help="Number of files to combine")
 	args = parser.parse_args()
-
-
 
 	output_dir = args.dir
 	use_resnet = args.feature_mode == "resnet"
 	if use_resnet:
 		raise NotImplementedError("HDF5 not set up for this, and naming scheme is incorrect (And breaking changes to shape and such)")
 
-	print("All birdcodes to process:", " ".join(args.bird_codes))
+	print("Allg birdcodes to process:", " ".join(args.bird_codes))
 
 	# Process all files based on the birdcodes in the arguments
 	if args.bird_codes == []:
