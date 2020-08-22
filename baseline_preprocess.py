@@ -34,31 +34,86 @@ window_size = 440
 universal_sample_rate = 22000
 spectrogram_slices_per_input = universal_sample_rate * 5 // window_size # = 5 seconds
 
+
+class HDF5DatasetExtendable:
+    def __init__(self, data_type=np.float32, label_type=np.int, compression=None):
+        """
+        Set initial parameters for auto-resizable hdf5 dataset
+        :param data_type: datatype to use for storage, such as np.float32
+        :param label_type: datatype to use for storage, such as np.float32
+        :param compression: None or "gzip"
+        """
+        self.data_type = data_type
+        self.label_type = label_type
+        self.compression = compression
+        self.initialized = False
+
+
+    def _init(self, data, labels):
+        """
+        Initialize the dataset objects with the first batch of data.
+        Do not call this function, always call append.
+        :param data: numpy array containing the data, where the first axis is the sample index
+        :param labels: numpy array containing the labels, where the first axis is the sample index
+        """
+        self.dataset = f.create_dataset(
+            "data", np.shape(data), self.data_type, maxshape=(None,) + np.shape(data)[1:],
+            data=fragments, chunks=True,
+            compression=self.compression
+        )
+        self.labelset = f.create_dataset(
+            "labels", np.shape(labels), self.label_type, maxshape=(None,) + np.shape(labels)[1:],
+            data=labels, chunks=True,
+            compression=self.compression
+        )
+        self.initialized = True
+
+    def append(self, data, labels):
+        """
+        Add data to the dataset. If not initialized, this will copy the shapes from the first call and initialze.
+        :param data: numpy array containing the data, where the first axis is the sample index
+        :param labels: numpy array containing the labels, where the first axis is the sample index
+        """
+        if not self.initialized:
+            self._init(data, labels)
+            return
+
+        shape = np.array(self.dataset.shape)
+        shape[0] += data.shape[0]
+        self.dataset.resize(shape)
+        self.dataset[-data.shape[0]:, ...] = data
+
+        shape = np.array(self.labelset.shape)
+        shape[0] += labels.shape[0]
+        self.labelset.resize(shape)
+        self.labelset[-labels.shape[0]:, ...] = labels
+
+
 # if __name__ == '__main__':
 #
-# 	try:
-# 		gpu_devices = tf.config.experimental.list_physical_devices('GPU')
-# 		for device in gpu_devices:
-# 			tf.config.experimental.set_memory_growth(device, True)
-# 	except IndexError:
-# 		pass
+    #try:
+        #gpu_devices = tf.config.experimental.list_physical_devices('GPU')
+        #for device in gpu_devices:
+            #tf.config.experimental.set_memory_growth(device, True)
+    #except IndexError:
+        # 		pass
 #
-# def preprocess(file_path, feature_extractor: keras.models.Model):
-# 	"""
-# 	Loads the audio file, generates a spectrogram, and applies feature_extractor on it
-# 	"""
-# 	spectrograms = tf_fourier(file_path, args)
+#def preprocess(file_path, feature_extractor: keras.models.Model):
+    #"""
+    #Loads the audio file, generates a spectrogram, and applies feature_extractor on it
+    #"""
+    # 	spectrograms = tf_fourier(file_path, args)
 #
-# 	if spectrograms != []:
-# 		# Duplicate the single amplitude channel to 3 channels, because ResNet50 expects 3 channels
-# 		spectrograms = np.array(spectrograms)
-# 		spectrograms = np.reshape(spectrograms, spectrograms.shape + (1,))
-# 		spectrograms = np.repeat(spectrograms, 3, axis=3)
+    #if spectrograms != []:
+        # #Duplicate the single amplitude channel to 3 channels, because ResNet50 expects 3 channels
+        #spectrograms = np.array(spectrograms)
+        #spectrograms = np.reshape(spectrograms, spectrograms.shape + (1,))
+        # 		spectrograms = np.repeat(spectrograms, 3, axis=3)
 #
-# 		# Apply the feature extractor
-# 		return feature_extractor.predict(spectrograms)
-# 	else:
-# 		return []
+        # #Apply the feature extractor
+        #return feature_extractor.predict(spectrograms)
+    #else:
+        # 		return []
 
 def tf_fourier(file_path, args, display=False):
     """
