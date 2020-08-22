@@ -126,6 +126,7 @@ class DataGeneratorHDF5(keras.utils.Sequence):
         self.shuffle = shuffle
 
         self.file = file
+        assert ".hdf5" in file, "Not hdf5 file"
 
         self.f = h5py.File(file, "r")
         self.length = len(self.f["spectrograms"])

@@ -19,8 +19,6 @@ if __name__ == "__main__":
                         help="Possible values: 'spectrogram' or 'resnet' for preprocessed by resnet base")
     parser.add_argument("--arch", default="cnn", type=str,
                         help="Network architecture, possible values: 'cnn', 'resnet-head', or '1d-conv' or 'resnet-full")
-    parser.add_argument("--arch", default="cnn", type=str,
-                        help="Network architecture, possible values: 'cnn', 'resnet-head', or '1d-conv' or 'resnet-full")
     parser.add_argument("--name", type=str, help="The experiment run name for tensorboard")
 
     args = parser.parse_args()
@@ -60,7 +58,7 @@ if __name__ == "__main__":
     reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.2,
                                                   patience=5, cooldown=2, min_lr=1e-9)
 
-    tensorboard_callback = utils.LRTensorBoard(log_dir=f"logs/{args.name}")
+    tensorboard_callback = utils.LRTensorBoard(log_dir=f"logs/{args.name}", settings_to_log=str(args))
 
     save_best_callback = keras.callbacks.ModelCheckpoint(filepath="models/" + args.name + ".val_f1.{val_f1_m:.3f}.h5",
                                                          save_best_only=True, monitor='val_f1_m')
