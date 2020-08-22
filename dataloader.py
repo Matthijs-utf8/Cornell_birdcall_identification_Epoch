@@ -10,7 +10,7 @@ from tensorflow.python.keras.applications.resnet import ResNet50
 from tqdm import tqdm
 
 import data_reading
-from baseline_preprocess import preprocess, spectrogram_shape
+# from baseline_preprocess import preprocess, spectrogram_shape
 from birdcodes import bird_code
 import preprocessing
 
@@ -119,31 +119,38 @@ class DataGenerator(keras.utils.Sequence):
 class DataGeneratorHDF5(keras.utils.Sequence):
     'Generates data for Keras'
 
-    def __init__(self, file, batch_size=32, dim=(16, 7, 2048), shuffle=True, verbose=True):
+    def __init__(self, filename, batch_size=32, dim=(16, 7, 2048), shuffle=True, verbose=True):
         'Initialization'
         self.batch_size = batch_size
         self.dim = dim
         self.shuffle = shuffle
+        self.verbose = verbose
 
-        self.file = file
-        assert ".hdf5" in file, "Not hdf5 file"
+        self.filename = filename
+        assert ".hdf5" in filename, "Not hdf5 file"
 
-        self.f = h5py.File(file, "r")
-        self.length = len(self.f["spectrograms"])
-        if verbose:
-            print("Using dataset", file)
-            print("  Size", self.length)
+
+
+    def __enter__(self):
+        self.file = h5py.File(self.filename, "r")
+
+        self.length = len(self.file["data"])
+        if self.verbose:
+            print("Using dataset", self.filename)
+            print("  Number of samples", self.length)
             print("  Metadata:")
-            for k, v in self.f["images"].attrs.items():
+            for k, v in self.file["data"].attrs.items():
                 print("   ", k, v)
 
-        # Note: if split into training and test sets, these may not  be the same shape
-        self.indexes = np.arange(len(self.files))
+        self.X = self.file["data"]
+        self.y = self.file["labels"]
 
-        self.X = self.f["spectrograms"]
-        self.y = self.f["labels"]
+        # Note: if split into training and test sets, these may not  be the same shape
+        self.indexes = np.arange(len(self.X))
 
         self.on_epoch_end()
+
+        return self
 
     def __len__(self):
         'Denotes the number of batches per epoch'
@@ -153,6 +160,8 @@ class DataGeneratorHDF5(keras.utils.Sequence):
         'Generate one batch of data'
         # Generate indexes of the batch
         indexes = self.indexes[index * self.batch_size:(index + 1) * self.batch_size]
+
+        indexes = sorted(indexes) # required for hdf5 indexing
 
         X = self.X[indexes]
         y = self.y[indexes]
@@ -173,6 +182,9 @@ class DataGeneratorHDF5(keras.utils.Sequence):
         self.indexes = train_indices
         test.indexes = test_indices
         return self, test
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.file.close()
 
     @staticmethod
     def from_multiple():
@@ -219,9 +231,7 @@ class DataGeneratorTestset(keras.utils.Sequence):
         self.labels = pd.read_csv(label_root)
         self.files = glob.glob(f"{data_root}/*")
 
-        self.use_resnet = use_resnet
-        if use_resnet:
-            self.resnet = ResNet50(input_shape=(spectrogram_shape + (3,)), include_top=False)
+
 
         self.__data_generation()
 
@@ -241,20 +251,17 @@ class DataGeneratorTestset(keras.utils.Sequence):
 
         for file in self.files:
             file_id = file.split("/")[-1].split("_")[0]
-            if self.use_resnet:
-                fragments = preprocess(file, self.resnet)
-            else:
-                fragments = preprocessing.load_spectrograms(file)
+            fragments = preprocessing.load_spectrograms(file)
 
-                if self.channels == 3:
-                    fragments = np.repeat(fragments[:, :, :, np.newaxis], 3, -1)
-                elif self.channels == 1:
-                    # shape (?, 250, 257) -> (?, 250, 257, 1) aka add channel
-                    fragments = fragments[:, :, :, np.newaxis]
-                elif self.channels in [0, False, None]:
-                    pass
-                else:
-                    raise NotImplementedError("Invalid channel")
+            if self.channels == 3:
+                fragments = np.repeat(fragments[:, :, :, np.newaxis], 3, -1)
+            elif self.channels == 1:
+                # shape (?, 250, 257) -> (?, 250, 257, 1) aka add channel
+                fragments = fragments[:, :, :, np.newaxis]
+            elif self.channels in [0, False, None]:
+                pass
+            else:
+                raise NotImplementedError("Invalid channel")
 
             for i, fragment in enumerate(fragments):
 
@@ -276,8 +283,6 @@ class DataGeneratorTestset(keras.utils.Sequence):
                 y = np.array([1 if i in detected_birds else 0 for i in bird_code.values()])
                 self.y.append(y)
 
-        if self.use_resnet:
-            self.X = np.concatenate(self.X)  # concat from (32, 1, 16, 7, 2048) to (32, 16, 7, 2048)
         self.X = np.array(self.X)
         self.y = np.array(self.y)
 
@@ -288,7 +293,12 @@ if __name__ == '__main__':
     # X, y = d[0]
     # print(X.shape, y.shape)
 
-    print("\nTEST\n")
+    print("Test HDF5 data generator")
+    with DataGeneratorHDF5("test.hdf5") as ds:
+        X, y = ds[0]
+        print(X.shape, y.shape)
+
+    print("Test Testdata generator")
     d = DataGeneratorTestset()
     X, y = d[0]
     print(X.shape, y.shape)
