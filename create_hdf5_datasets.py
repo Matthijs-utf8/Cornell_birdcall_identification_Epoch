@@ -252,4 +252,4 @@ if __name__ == "__main__":
                         continue
                     dataset.append(data, labels)
 
-        # dataset.add_metadata(vars(args))
+        dataset.add_metadata(vars(args))

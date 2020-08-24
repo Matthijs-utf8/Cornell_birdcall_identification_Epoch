@@ -229,7 +229,6 @@ if __name__ == "__main__":
         labels = np.array([range(5) for x in range(10)])
 
         dataset.append(data, labels)
-
         data = np.array([range(10) for x in range(8)]) # less samples than previous append
         labels = np.array([range(5) for x in range(8)])
 
