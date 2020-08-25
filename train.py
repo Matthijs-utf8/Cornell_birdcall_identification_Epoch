@@ -17,7 +17,7 @@ if __name__ == "__main__":
     parser.add_argument("--workers", default=1, type=int, help="Number of dataloader workers, may work incorrectly")
     parser.add_argument("--feature-mode", default="spectrogram", type=str,
                         help="Possible values: 'spectrogram' or 'resnet' for preprocessed by resnet base")
-    parser.add_argument("--arch", default="cnn", type=str,
+    parser.add_argument("--arch", default="resnet-full", type=str,
                         help="Network architecture, possible values: 'cnn', 'resnet-head', or '1d-conv' or 'resnet-full")
     parser.add_argument("--name", type=str, help="The experiment run name for tensorboard")
 
