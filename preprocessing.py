@@ -172,11 +172,11 @@ def load_spectrograms(file_path):
 
 	samples, sampling_rate = librosa.load(file_path)
 
-	if sampling_rate != 22050:
-		samples = resample((samples, sampling_rate))
+	if sampling_rate != 22000:
+		samples = resample(samples, sampling_rate)
 
 	return make_spectrogram(samples,
-							sampling_rate=22050,
+							sampling_rate=22000,
 							seconds=5,
 							window_width=512,
 							spectrogram_type="normal",

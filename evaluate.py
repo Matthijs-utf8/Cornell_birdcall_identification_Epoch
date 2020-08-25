@@ -59,11 +59,12 @@ if __name__ == '__main__':
 
     start = time.time()
     bsize = 32
-    test_generator = dataloader.DataGeneratorTestset(channels=3, batch_size=bsize)
-    _, train_generator = dataloader.DataGenerator("spectrograms", batch_size=bsize, dim=input_shape, channels=3, shuffle=False).split(0.003)
+    channels = 3 #1 # or 3
+    test_generator = dataloader.DataGeneratorTestset(channels=channels, batch_size=bsize)
+    _, train_generator = dataloader.DataGenerator("spectrograms", batch_size=bsize, dim=input_shape, channels=channels, shuffle=False).split(0.003)
 
     # switch here
-    generator = train_generator
+    generator = test_generator
 
 
     print("Dataloader done, time (s):", time.time() - start)
