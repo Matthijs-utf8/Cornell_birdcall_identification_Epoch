@@ -203,7 +203,7 @@ if __name__ == "__main__":
     import os
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dir", default="preprocessed.h5", type=str, help="Where to place the hdf5 dataset file")
+    parser.add_argument("--file", default="preprocessed.h5", type=str, help="Where to place the hdf5 dataset file")
     parser.add_argument("--info", type=str, help="Description to add to hdf5 file metadata")
     parser.add_argument("-b", "--bird_codes", nargs="*", default=list(bird_code.keys()), type=str,
                         help="List of bird codes indicating which files need to be processed")
@@ -217,9 +217,8 @@ if __name__ == "__main__":
                                                                                   "spaces, use with --shuffle_aug")
     parser.add_argument("-n", "--n_steps", type=float, nargs="*", help="Randomness noise, use with --noise_aug "
                                                                        "'white_noise', 2 floats")
+    parser.add_argument("--max_size", type=int, default=None, help="Maximum number of soundfiles per bird, usefull to limit dataset size.")
     args = parser.parse_args()
-
-    output_dir = args.dir
 
     # Print bird code-processing information for user
     if args.bird_codes == list(bird_code.keys()):
@@ -228,7 +227,7 @@ if __name__ == "__main__":
         print("All bird codes to process:", " ".join(args.bird_codes))
 
     # Create the dataset
-    with HDF5DatasetExtendable("test.hdf5") as dataset:
+    with HDF5DatasetExtendable(args.file) as dataset:
 
         # Special case: shuffled data
         if args.shuffle_aug:
@@ -243,7 +242,10 @@ if __name__ == "__main__":
                 bird_id = bird_code[birdcode]
                 path_to_birdsound_dir = data_reading.test_data_base_dir + "train_audio/" + birdcode + "/"
 
-                for file_name in os.listdir(path_to_birdsound_dir):
+                for i, file_name in enumerate(os.listdir(path_to_birdsound_dir)):
+                    # limit dataset file by including limited number of sound files
+                    if i == args.max_size:
+                        break
 
                     # Create data per file
                     data, labels = create_data(path_to_birdsound_dir, file_name, args)
@@ -252,4 +254,5 @@ if __name__ == "__main__":
                         continue
                     dataset.append(data, labels)
 
-        # dataset.add_metadata(vars(args))
+        # store every argument of the script with the dataset for reproducability
+        dataset.add_metadata(vars(args))
