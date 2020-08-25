@@ -205,7 +205,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--file", default="preprocessed.h5", type=str, help="Where to place the hdf5 dataset file")
     parser.add_argument("--info", type=str, help="Description to add to hdf5 file metadata")
-    parser.add_argument("--compression", type=str, help="HDF5 compression algorithm, [None, 'gzip', 'lzf'] ")
+    parser.add_argument("--compression", type=str, default="lzf", help="HDF5 compression algorithm, [None, 'gzip', "
+                                                                       "'lzf'] with default lzf (very fast but "
+                                                                       "moderate compression)" )
     parser.add_argument("-b", "--bird_codes", nargs="*", default=list(bird_code.keys()), type=str,
                         help="List of bird codes indicating which files need to be processed")
     parser.add_argument("--shift_aug", type=str, default=None,
