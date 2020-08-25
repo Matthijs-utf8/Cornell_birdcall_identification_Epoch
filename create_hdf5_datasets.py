@@ -159,11 +159,11 @@ def preprocess(file_path, args):
 def create_data(path_to_birdsound_dir, file_name, args):
     # Get fragments (raw sound files)
     fragments = preprocess(path_to_birdsound_dir + file_name, args)
-    print('fragments shape', fragments.shape)
+    # print('fragments shape', fragments.shape)
 
     # Match number of labels to fragments
     labels = np.array([[1 if i in [bird_id] else 0 for i in bird_code.values()]] * len(fragments))  # one hot encoding
-    print('labels shape', labels.shape)
+    # print('labels shape', labels.shape)
 
     return fragments, labels
 
@@ -205,6 +205,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--file", default="preprocessed.h5", type=str, help="Where to place the hdf5 dataset file")
     parser.add_argument("--info", type=str, help="Description to add to hdf5 file metadata")
+    parser.add_argument("--compression", type=str, help="HDF5 compression algorithm, [None, 'gzip', 'lzf'] ")
     parser.add_argument("-b", "--bird_codes", nargs="*", default=list(bird_code.keys()), type=str,
                         help="List of bird codes indicating which files need to be processed")
     parser.add_argument("--shift_aug", type=str, default=None,
@@ -227,7 +228,7 @@ if __name__ == "__main__":
         print("All bird codes to process:", " ".join(args.bird_codes))
 
     # Create the dataset
-    with HDF5DatasetExtendable(args.file) as dataset:
+    with HDF5DatasetExtendable(args.file, compression=args.compression) as dataset:
 
         # Special case: shuffled data
         if args.shuffle_aug:
