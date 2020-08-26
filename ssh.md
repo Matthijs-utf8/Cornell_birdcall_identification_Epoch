@@ -2,14 +2,21 @@
 
 #### Setup DAS4 
 
-`ssh-copy-id bhkam@fs3.das4.tudelft.nl`
+To enable passwordless login on the DAS4, you can copy your public key to the 2 machines. The first machine is a proxy, 
+and the second is the one where we run our training. To do this you need access to your university VPN.
+On your own computer run this to copy the key to the first machine.
 
-Also place your public key on the actual server (run this command on bhkam@fs3.das4.tudelft.nl)
+`ssh-copy-id bhkam@fs3.das4.tudelft.nl`
+ 
+Then, to place your public key on the second machine, we need to log in to the first machine.
+Do so with `ssh bhkam@fs3.das4.tudelft.nl` which should work without password. On this machine, switch to the ssh folder using
+`cd ~/.ssh/` and run the folowing command to set up your keys on the second machine.
 
 `scp authorized_keys team_epoch@10.141.3.188:~/.ssh/`
 
 ####  Setup WS6 robotlab UvA
-ssh-copy-id teamepoch@146.50.28.207
+Set up passwordless acces to the robotlab ws7 use:
+`ssh-copy-id teamepoch@146.50.28.207`
 
 ####  Create an ssh config file
 Create the file `~/.ssh/config` with the following content.
