@@ -215,23 +215,25 @@ class DataGeneratorHDF5(keras.utils.Sequence):
 class DataGeneratorTestset(keras.utils.Sequence):
     'Generates data for Keras'
 
-    def __init__(self, batch_size=32, use_resnet=False, channels=1):
+    def __init__(self, batch_size=32, use_resnet=False, channels=1, normalize_samples=False, filter_noise=False):
         """
         Create dataloader for Cornell test data.
         Args:
             batch_size:
             use_resnet:
             channels: spectrogram shape if true: (?, 257, 463, channels)  if false: (?, 257, 463)
+            normalize_samples: bool, indicates whether loaded test audio should be normalized
+            filter_noise: bool, indicates whether loaded test audio should be filtered for noise
         """
         self.batch_size = batch_size
         self.channels = channels
+        self.normalize_samples = normalize_samples
+        self.filter_noise = filter_noise
 
         data_root = data_reading.test_data_base_dir + "example_test_audio/"
         label_root = data_reading.test_data_base_dir + "example_test_audio_summary.csv"
         self.labels = pd.read_csv(label_root)
         self.files = glob.glob(f"{data_root}/*")
-
-
 
         self.__data_generation()
 
@@ -251,7 +253,7 @@ class DataGeneratorTestset(keras.utils.Sequence):
 
         for file in self.files:
             file_id = file.split("/")[-1].split("_")[0]
-            fragments = preprocessing.load_spectrograms(file)
+            fragments = preprocessing.load_spectrograms(file, self.normalize_samples, self.filter_noise)
 
             if self.channels == 3:
                 fragments = np.repeat(fragments[:, :, :, np.newaxis], 3, -1)
@@ -293,12 +295,12 @@ if __name__ == '__main__':
     # X, y = d[0]
     # print(X.shape, y.shape)
 
-    print("Test HDF5 data generator")
-    with DataGeneratorHDF5("test.hdf5") as ds:
-        X, y = ds[0]
-        print(X.shape, y.shape)
+    # print("Test HDF5 data generator")
+    # with DataGeneratorHDF5("test.hdf5") as ds:
+    #     X, y = ds[0]
+    #     print(X.shape, y.shape)
 
     print("Test Testdata generator")
-    d = DataGeneratorTestset()
+    d = DataGeneratorTestset(filter_noise=False, normalize_samples=True)
     X, y = d[0]
     print(X.shape, y.shape)

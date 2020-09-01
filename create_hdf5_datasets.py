@@ -32,7 +32,7 @@ window_size = 440
 base_dir = data_reading.read_config()
 df_train = pd.read_csv(base_dir + "train.csv")
 
-
+""" Class that saves data and labels as a .hdf5 file. """
 class HDF5DatasetExtendable:
     VERSION = "1.0.0"
 
@@ -109,6 +109,7 @@ class HDF5DatasetExtendable:
         self.file.close()
 
 
+""" Preprocessing incoming data, includes resampling and normalizing. """
 def preprocess(file_path, args):
     # Get sound and sample rate from file using librosa
     try:
@@ -125,7 +126,8 @@ def preprocess(file_path, args):
     if args.noise_aug:
         if args.noise_aug == "white_noise":
             if args.n_steps:
-                sound = sound_shuffling.add_white_noise(sound, target_snr=np.random.normal(args.n_steps[0], args.n_steps[1]))
+                sound = sound_shuffling.add_white_noise(sound,
+                                                        target_snr=np.random.normal(args.n_steps[0], args.n_steps[1]))
             else:
                 sound = sound_shuffling.add_white_noise(sound, target_snr=np.random.normal(4.5, 2.0))
         if args.noise_aug == "background_noise":
@@ -155,7 +157,7 @@ def preprocess(file_path, args):
 
     return np.array(frames)
 
-
+""" A function that creates data and labels ready for the hdf5 class to use. """
 def create_data(path_to_birdsound_dir, file_name, args):
     # Get fragments (raw sound files)
     fragments = preprocess(path_to_birdsound_dir + file_name, args)
@@ -178,7 +180,6 @@ def create_shuffled_dataset(nr_of_files, files_to_combine, metrics=[], clip_seco
     """
 
     for _ in range(nr_of_files):
-
         # Get the sorted dataframe and pick random files from it (if metrics == None, the files will be randomly
         # picked from the whole dataset)
         new_dataframe = sound_shuffling.filter_metadata_by_metrics(df_train, metrics=metrics,
@@ -192,11 +193,12 @@ def create_shuffled_dataset(nr_of_files, files_to_combine, metrics=[], clip_seco
 
         return combined_file, labels
 
-
+""" A function that creates the shuffled data and labels. """
 def create_shuffled_data(args):
     print(int(args.shuffle_aug[0]), int(args.shuffle_aug[1]))
     print(args.metric)
     create_shuffled_dataset(int(args.shuffle_aug[0]), int(args.shuffle_aug[1]), list(args.metric))
+
 
 if __name__ == "__main__":
     import sys
@@ -234,7 +236,8 @@ if __name__ == "__main__":
 
         # Special case: shuffled data
         if args.shuffle_aug:
-            data, labels = create_shuffled_dataset(int(args.shuffle_aug[0]), int(args.shuffle_aug[1]), list(args.metric))
+            data, labels = create_shuffled_dataset(int(args.shuffle_aug[0]), int(args.shuffle_aug[1]),
+                                                   list(args.metric))
             dataset.append(data, labels)
 
         # Normal cases
