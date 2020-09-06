@@ -190,7 +190,7 @@ def create_shuffled_dataset(nr_of_files, files_to_combine, metrics=[], clip_seco
         combined_file, labels = sound_shuffling.combine_files(files=random_files,
                                                               universal_sr=22050,
                                                               seconds=clip_seconds)
-
+        print('done mixing!')
         return combined_file, labels
 
 """ A function that creates the shuffled data and labels. """
@@ -236,7 +236,6 @@ if __name__ == "__main__":
 
         # Special case: shuffled data
         if args.shuffle_aug:
-            print('do we get here?')
             data, labels = create_shuffled_dataset(int(args.shuffle_aug[0]), int(args.shuffle_aug[1]),
                                                    list(args.metric))
             dataset.append(data, labels)
