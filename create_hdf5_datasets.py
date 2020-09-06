@@ -236,8 +236,13 @@ if __name__ == "__main__":
 
         # Special case: shuffled data
         if args.shuffle_aug:
+            print('do we get here?')
             data, labels = create_shuffled_dataset(int(args.shuffle_aug[0]), int(args.shuffle_aug[1]),
                                                    list(args.metric))
+            if len(data) == 0:
+                print("Skipping short sound file: ", file_name)
+                continue
+
             dataset.append(data, labels)
 
         # Normal cases
