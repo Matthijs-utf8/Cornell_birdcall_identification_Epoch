@@ -69,3 +69,6 @@ def ResNet(weights="imagenet"):
         layers.Dense(len(birdcodes.bird_code), activation="sigmoid"),
     ])
     return model, input_shape, channels
+
+def FromFile(path_to_weights):
+    keras.models.load_model(path_to_weights)
