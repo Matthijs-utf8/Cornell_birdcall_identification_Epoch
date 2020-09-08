@@ -129,8 +129,6 @@ class DataGeneratorHDF5(keras.utils.Sequence):
         self.filename = filename
         assert ".hdf5" in filename, "Not hdf5 file"
 
-
-
     def __enter__(self):
         self.file = h5py.File(self.filename, "r")
 
@@ -211,6 +209,78 @@ class DataGeneratorHDF5(keras.utils.Sequence):
 
         with h5py.File("VDS_con.h5", 'w', libver='latest') as f:
             f.create_virtual_dataset(entry_key, layout, fillvalue=0)
+
+from torch.utils.data import Dataset, DataLoader
+
+class DataGeneratorHDF5Pytorch(Dataset):
+    """Generates data for Keras
+    Use in combination with something like torch.utils.data.DataLoader(dataset, batch_size=4, shuffle=True, num_workers=4)
+    """
+
+    def __init__(self, filename, batch_size=32, dim=(16, 7, 2048), shuffle=True, verbose=True):
+        'Initialization'
+        self.batch_size = batch_size
+        self.dim = dim
+        self.shuffle = shuffle
+        self.verbose = verbose
+
+        self.filename = filename
+        assert ".hdf5" in filename, "Not hdf5 file"
+
+    def __enter__(self):
+        self.file = h5py.File(self.filename, "r")
+
+        self.length = len(self.file["data"])
+        if self.verbose:
+            print("Using dataset", self.filename)
+            print("  Number of samples", self.length)
+            print("  Metadata:")
+            for k, v in self.file["data"].attrs.items():
+                print("   ", k, v)
+
+        self.X = self.file["data"]
+        self.y = self.file["labels"]
+
+        # Note: if split into training and test sets, these may not  be the same shape
+        self.indexes = np.arange(len(self.X))
+
+        self.on_epoch_end()
+
+        return self
+
+    def __len__(self):
+        'Denotes the number of batches per epoch'
+        return int(np.floor(len(self.indexes) / self.batch_size))
+
+    def __getitem__(self, index):
+        'Generate one batch of data'
+        # Generate indexes of the batch
+        indexes = self.indexes[index * self.batch_size:(index + 1) * self.batch_size]
+
+        indexes = sorted(indexes) # required for hdf5 indexing
+
+        X = self.X[indexes]
+        y = self.y[indexes]
+
+        return X, y
+
+    def on_epoch_end(self):
+        'Updates indexes after each epoch'
+        if self.shuffle:
+            np.random.shuffle(self.indexes)
+
+    def split(self, factor=0.1):
+        """ Split into training and validation sets, probably very not thread safe """
+        split = int(len(self.indexes) * (1 - factor))
+        train_indices, test_indices = self.indexes[:split], self.indexes[split:]
+        test = copy.deepcopy(self)
+
+        self.indexes = train_indices
+        test.indexes = test_indices
+        return self, test
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.file.close()
 
 class DataGeneratorTestset(keras.utils.Sequence):
     'Generates data for Keras'
@@ -300,7 +370,46 @@ if __name__ == '__main__':
     #     X, y = ds[0]
     #     print(X.shape, y.shape)
 
-    print("Test Testdata generator")
-    d = DataGeneratorTestset(filter_noise=False, normalize_samples=True)
-    X, y = d[0]
-    print(X.shape, y.shape)
+    # print("Test Testdata generator")
+    # d = DataGeneratorTestset(filter_noise=False, normalize_samples=True)
+    # X, y = d[0]
+    # print(X.shape, y.shape)
+    pass
+
+""" Librosa (without resampling) vs HDF5 () benchmark"""
+if __name__ == '__main__':
+    import time
+    import os
+    import librosa
+    print("Speed comparison")
+    N = 2000
+
+    print("Test HDF5 data generator")
+
+    # start = time.perf_counter()
+    # 
+    # with DataGeneratorHDF5("datasets/original_small.hdf5", verbose=True, batch_size=1) as ds:
+    #     for i in range(N):
+    #         X, y = ds[i]
+    #
+    # duration = time.perf_counter() - start
+    # print("Duration", duration)
+    # print(duration/N, "seconds per sample\n")
+
+    print("Test librosa load")
+    start = time.perf_counter()
+
+    i = 0
+    for birdcode in bird_code.keys():
+        path_to_birdsound_dir = data_reading.test_data_base_dir + "train_audio/" + birdcode + "/"
+        for file_name in os.listdir(path_to_birdsound_dir):
+            if i > N:
+                break
+            sound, sample_rate = librosa.load(path_to_birdsound_dir + file_name, sr=22500)
+            nr_of_seconds = len(sound) / sample_rate
+            nr_of_frames = nr_of_seconds//5
+            i += nr_of_frames
+
+    duration = time.perf_counter() - start
+    print("Duration", duration)
+    print(duration/N, "seconds per sample\n")
