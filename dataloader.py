@@ -243,9 +243,6 @@ class DataGeneratorHDF5Pytorch(Dataset):
 
         # Note: if split into training and test sets, these may not  be the same shape
         self.indexes = np.arange(len(self.X))
-
-        self.on_epoch_end()
-
         return self
 
     def __len__(self):
@@ -263,11 +260,6 @@ class DataGeneratorHDF5Pytorch(Dataset):
         y = self.y[indexes]
 
         return X, y
-
-    def on_epoch_end(self):
-        'Updates indexes after each epoch'
-        if self.shuffle:
-            np.random.shuffle(self.indexes)
 
     def split(self, factor=0.1):
         """ Split into training and validation sets, probably very not thread safe """
