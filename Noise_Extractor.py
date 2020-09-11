@@ -4,9 +4,9 @@ import matplotlib.pyplot as plt
 import librosa
 import sklearn
 import warnings
-import data_reading
+
 import noisereduce as nr
-import preprocessing
+import data_reading
 
 # A function that prevents warnings when loading in files with librosa
 warnings.simplefilter("ignore")
@@ -154,9 +154,8 @@ def filter_sound(samples, sampling_rate, window_width=2048, stepsize=512, verbos
 	
 	if len(noise) > 0:
 		
-		reduced_noise = nr.reduce_noise(audio_clip=samples, noise_clip=noise, verbose=verbose)
+		return nr.reduce_noise(audio_clip=samples, noise_clip=noise, verbose=verbose)
 		
-		return preprocessing.normalize(reduced_noise)
 	
 	else:
 		
@@ -167,5 +166,5 @@ if __name__ == "__main__":
 	
 	samples, sampling_rate = librosa.load(df_train["full_path"][3])
 	
-	filter_sound(samples, sampling_rate, verbose=True)
+	filter_sound(samples, sampling_rate, verbose=False)
 

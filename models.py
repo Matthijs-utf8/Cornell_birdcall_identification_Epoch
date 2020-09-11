@@ -4,7 +4,7 @@ from tensorflow.python.keras.applications.resnet import ResNet50
 
 import birdcodes
 
-spectrogram_dim = (250, 257)
+spectrogram_dim = (224, 547)
 
 
 def CNN():
@@ -61,7 +61,7 @@ def ResNet(weights="imagenet"):
     :return:
     """
     channels = 3
-    input_shape = spectrogram_dim + (3,)
+    input_shape = (3,) + spectrogram_dim
     model = keras.models.Sequential([
         ResNet50(input_shape=input_shape, include_top=False, weights=weights),
         layers.GlobalMaxPool2D(input_shape=(8, 9, 2048)),
@@ -70,5 +70,14 @@ def ResNet(weights="imagenet"):
     ])
     return model, input_shape, channels
 
-def FromFile(path_to_weights):
-    keras.models.load_model(path_to_weights)
+def savedModel(path="C:/Users/siets/OneDrive/Documenten/Sietse/Team Epoch/best_keras.pth.h5"):
+    model = keras.models.load_model(path, custom_objects={
+    'recall_m': 0,
+    'precision_m': 0,
+    'f1_m': 0
+    })
+    
+    channels = 3
+    input_shape = (3,) + spectrogram_dim
+    
+    return model, input_shape, channels

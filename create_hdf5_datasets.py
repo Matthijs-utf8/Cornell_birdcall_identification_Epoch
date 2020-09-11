@@ -27,7 +27,7 @@ import preprocessing
 from birdcodes import bird_code
 
 # variables
-universal_sample_rate = 22000
+universal_sample_rate = 32000
 window_size = 440
 base_dir = data_reading.read_config()
 df_train = pd.read_csv(base_dir + "train.csv")
@@ -256,7 +256,6 @@ if __name__ == "__main__":
                     # Create data per file
                     data, labels = create_data(path_to_birdsound_dir, file_name, args)
                     if len(data) == 0:
-                        print("Skipping short sound file: ", file_name)
                         continue
                     dataset.append(data, labels)
 
