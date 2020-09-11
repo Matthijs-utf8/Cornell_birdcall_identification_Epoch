@@ -34,30 +34,3 @@ def get_test_example_files():
         directory + file
         for file in os.listdir(directory)
     ]
-
-# Returns the n'th audio fragment
-def get_frames_from_index(index, csv):
-    full_path = test_data_base_dir + "train_audio/" + csv['ebird_code'][index] + '/' + csv['filename'][index]
-    return get_frames(full_path)
-
-def default_test_frames():
-    metadata = pandas.read_csv(test_data_base_dir + "train.csv")
-
-    full_path = test_data_base_dir + "train_audio/" + metadata['ebird_code'][3] + '/' + metadata['filename'][3]
-
-    return get_frames(full_path)
-
-# Returns the audio fragment located at file_path
-def get_frames(file_path):
-    window_width = 2048
-    stepsize = window_width
-
-    data, sample_rate = librosa.load(file_path)
-    nr_of_frames = (len(data) - window_width + stepsize) // stepsize
-    
-    frames = np.array([
-        data[stepsize*n:stepsize*n+window_width]
-        for n in range(nr_of_frames)
-    ])
-
-    return frames, sample_rate

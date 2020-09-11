@@ -4,16 +4,12 @@ import matplotlib.pyplot as plt
 import librosa
 import sklearn
 import warnings
-import sounddevice as sd
 import data_reading
 import noisereduce as nr
+import preprocessing
 
 # A function that prevents warnings when loading in files with librosa
 warnings.simplefilter("ignore")
-
-# A helper function for normalizing signals. It helps with viualisation to get everything on the same scale.
-def normalize(x, axis=0):
-	return sklearn.preprocessing.minmax_scale(x, axis=axis)
 
 # A function for calculating autocorrelation of a signal
 def autocorr(x, t=1):
@@ -87,8 +83,9 @@ def get_noise_frames(samples, sampling_rate, window_width=2048, stepsize=512, ve
 	# Get the energy coefficient that we need for separating pure noise from non-pure noise.
 	SNR, energy_coefficient = compute_energy_coefficient(samples, base_coefficient=2)
 	
-	print("Energy coefficient: " + str(round(energy_coefficient, 3) ) )
-	print("Signal-to-Noise: " + str(round(SNR, 3)))
+	if verbose:
+		print("Energy coefficient: " + str(round(energy_coefficient, 3) ) )
+		print("Signal-to-Noise: " + str(round(SNR, 3)))
 	
 	""" Separating pure noise from non-pure noise. """
 	
@@ -112,12 +109,12 @@ def get_noise_frames(samples, sampling_rate, window_width=2048, stepsize=512, ve
 			non_noisy_frames.extend(frames[index][int((window_width-stepsize)/2):int((window_width+stepsize)/2)])
 			non_noisy_energy.append(energy)
 	
-	# A measure for how well the noise is predictable (higher is better). The better predictable it is, the better a spectral noise gate will work
-	print("Noise predictability: " + str(round(autocorr(noisy_frames)[0,1] / autocorr(non_noisy_frames)[0,1], 3) ) )
+	if verbose:
+		
+		# A measure for how well the noise is predictable (higher is better). The better predictable it is, the better a spectral noise gate will work
+		print("Noise predictability: " + str(round(autocorr(noisy_frames)[0,1] / autocorr(non_noisy_frames)[0,1], 3) ) )
 	
-	""" Plotting """
-	
-	if verbose == True:
+		""" Plotting """
 		
 		# Initiate time domain axes for some different graphs
 		t_soundwave = np.linspace(0, len(samples)/sampling_rate, len(samples))
@@ -131,22 +128,22 @@ def get_noise_frames(samples, sampling_rate, window_width=2048, stepsize=512, ve
 		# Plot the signal versus the signal energy
 		plt.figure(figsize=(20,12))
 		plt.title("Energy whole signal")
-		plt.plot(t_soundwave, normalize(samples), alpha=0.5)
-		plt.plot(t_windowed_features, normalize(energies))
+		plt.plot(t_soundwave, preprocessing.normalize(samples), alpha=0.5)
+		plt.plot(t_windowed_features, preprocessing.normalize(energies))
 		plt.show()
 		
 		# Plot the signal versus the signal energy
 		plt.figure(figsize=(20,12))
 		plt.title("Energy pure noise signal")
-		plt.plot(t_soundwave_noisy, normalize(noisy_frames), alpha=0.5)
-		plt.plot(t_windowed_features_noisy, normalize(noisy_energy) )
+		plt.plot(t_soundwave_noisy, preprocessing.normalize(noisy_frames), alpha=0.5)
+		plt.plot(t_windowed_features_noisy, preprocessing.normalize(noisy_energy) )
 		plt.show()
 		
 		# Plot the signal versus the signal energy
 		plt.figure(figsize=(20,12))
 		plt.title("Energy non pure noise signal")
-		plt.plot(t_soundwave_non_noisy, normalize(non_noisy_frames), alpha=0.5)
-		plt.plot(t_windowed_features_non_noisy, normalize(non_noisy_energy))
+		plt.plot(t_soundwave_non_noisy, preprocessing.normalize(non_noisy_frames), alpha=0.5)
+		plt.plot(t_windowed_features_non_noisy, preprocessing.normalize(non_noisy_energy))
 		plt.show()
 	
 	return np.array(noisy_frames)
@@ -155,23 +152,16 @@ def filter_sound(samples, sampling_rate, window_width=2048, stepsize=512, verbos
 	
 	noise = get_noise_frames(samples=samples, sampling_rate=sampling_rate, window_width=window_width, stepsize=stepsize, verbose=verbose)
 	
-	reduced_noise = nr.reduce_noise(audio_clip=samples, noise_clip=noise, verbose=verbose)
+	if len(noise) > 0:
+		
+		reduced_noise = nr.reduce_noise(audio_clip=samples, noise_clip=noise, verbose=verbose)
+		
+		return preprocessing.normalize(reduced_noise)
 	
-	if verbose == True:
+	else:
 		
-		print("Playing original samples")
-		sd.play(samples, sampling_rate)
-		sd.wait()
-		
-		print("PLaying noise")
-		sd.play(noise, sampling_rate)
-		sd.wait()
-		
-		print("Playing reduced noise samples")
-		sd.play(reduced_noise, sampling_rate)
-		sd.wait()
+		return samples
 
-	return reduced_noise
 
 if __name__ == "__main__":
 	
