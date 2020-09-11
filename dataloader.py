@@ -163,7 +163,19 @@ class DataGeneratorHDF5(keras.utils.Sequence):
 
         indexes = sorted(indexes) # required for hdf5 indexing
 
-        X = self.X[indexes]
+        X = []
+        for i in indexes:
+            samples = self.X[i]
+            print("samples shape", samples.shape)
+            spec = preprocessing.make_spectrogram(samples,
+                                            sampling_rate=22050,
+                                            seconds=5,
+                                            window_width=440,
+                                            spectrogram_type="normal",
+                                            verbose=False)
+
+            X.append(spec)
+
         y = self.y[indexes]
 
         return X, y

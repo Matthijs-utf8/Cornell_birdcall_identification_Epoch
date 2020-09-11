@@ -7,6 +7,7 @@ from tensorflow import keras
 import dataloader
 import models
 import utils
+from preprocessing import make_spectrogram
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -21,6 +22,7 @@ if __name__ == "__main__":
                         help="Network architecture, possible values: 'cnn', 'resnet-head', or '1d-conv' or 'resnet-full")
     parser.add_argument("--name", type=str, help="The experiment run name for tensorboard")
     parser.add_argument("--dataset", type=str, help="The dataset for this experiment")
+    parser.add_argument("--checkpoint", type=str, help="Use a pretrained model to continue training")
 
     args = parser.parse_args()
 
@@ -30,16 +32,21 @@ if __name__ == "__main__":
     print(f'Number of devices for multigpu strategy: {strategy.num_replicas_in_sync}')
 
     with strategy.scope():
-        if args.arch == "cnn":
-            model, input_shape, channels = models.CNN()
-        elif args.arch == "resnet-head":
-            model, input_shape, channels = models.ResNetHead()
-        elif args.arch == "1d-conv":
-            model, input_shape, channels = models.Conv1D()
-        elif args.arch == "resnet-full":
-            model, input_shape, channels = models.ResNet()
+
+        if args.checkpoint:
+            model = keras.models.load_model(args.checkpoint)
         else:
-            raise NotImplementedError("Model type not supported")
+
+            if args.arch == "cnn":
+                model, input_shape, channels = models.CNN()
+            elif args.arch == "resnet-head":
+                model, input_shape, channels = models.ResNetHead()
+            elif args.arch == "1d-conv":
+                model, input_shape, channels = models.Conv1D()
+            elif args.arch == "resnet-full":
+                model, input_shape, channels = models.ResNet()
+            else:
+                raise NotImplementedError("Model type not supported")
 
         # print("trainable count:", len(model.trainable_variables))
         optimizer = keras.optimizers.Adam(
@@ -51,10 +58,12 @@ if __name__ == "__main__":
                       metrics=[keras.metrics.CategoricalAccuracy(), utils.f1_m, utils.precision_m, utils.recall_m])
 
 
+
     # Data
     with dataloader.DataGeneratorHDF5(args.dataset) as data_generator:
+        print(data_generator[0][0].shape)
 
-        data_generator, data_generator_val = data_generator.split(0.1)
+        # data_generator, data_generator_val = data_generator.split(0.1) # TODO fix split for hdf5
 
         reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.2,
                                                       patience=5, cooldown=2, min_lr=1e-9)
@@ -66,5 +75,5 @@ if __name__ == "__main__":
         # callback = keras.callbacks.EarlyStopping(monitor='val_f1_m', patience=5)
 
         model.fit(data_generator, callbacks=[reduce_lr, tensorboard_callback, save_best_callback],
-                  epochs=args.epochs, workers=args.workers, validation_data=data_generator_val)
+                  epochs=args.epochs, workers=args.workers)
         model.save("models/" + args.name + ".h5")
