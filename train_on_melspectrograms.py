@@ -18,7 +18,7 @@ import statistics
 import cv2
 # from keras.utils.vis_utils import plot_model
 from tqdm import tqdm
-import psutil
+# import psutil
 
 melspectrogram_parameters = {
     "n_mels": 128,
