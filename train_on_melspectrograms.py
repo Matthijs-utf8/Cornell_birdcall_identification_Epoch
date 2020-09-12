@@ -1,38 +1,30 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Sep 10 13:10:54 2020
-
-@author: siets
-"""
-import numpy as np
-import librosa
-import matplotlib.pyplot as plt
-import scipy
-import Noise_Extractor
-import sklearn
-import pydub
-import data_reading
-import utils
+# %% [code]
 import pandas as pd
-import cv2
+import sys
+import numpy as np
+from glob import glob
+import random
+import os
+import time
+import librosa
 import tensorflow as tf
 from tensorflow import keras
-import dataloader
+import matplotlib.pyplot as plt
+import scipy
+import sklearn
+import pydub
 import warnings
-
-warnings.filterwarnings("ignore")
-
-universal_sample_rate = 32000
+import statistics
+import cv2
+from keras.utils.vis_utils import plot_model
+from tqdm import tqdm
+import psutil
 
 melspectrogram_parameters = {
     "n_mels": 128,
     "fmin": 20,
     "fmax": 16000
 }
-
-# Add the path of each file to the train.csv
-base_dir = data_reading.read_config()
-df_train = pd.read_csv(base_dir + "train.csv")
 
 #Method copied from notebook Xavier used to do our 0.560 submission
 def mono_to_color(X: np.ndarray,
@@ -67,24 +59,32 @@ def mono_to_color(X: np.ndarray,
         V = np.zeros_like(Xstd, dtype=np.uint8)
     return V
     
-
 #Method to read audio from a specified path and return the mel-spectrograms
-def make_spectrograms(batch, sr=32000):
+def make_spectrograms(waveform, sample_rate=32000):
     
+    #Load audio from .mp3 format
+    #waveform, sample_rate = librosa.load(audio_path, sr=sr, mono=True)
+    
+
     #Specify resulting list of images
     result = []
     
     #Loop over audio in 5 second windows
-    for samples in batch:
-        if len(samples) != 5 * sr:
-            raise ValueError("Samples have wrong length; should be 160000 with sr=32000")
+    for n in range(0, int(np.ceil(len(waveform) / sample_rate)), 5):
         
+        #Get the waveform for a five second window
+        samples = waveform[n * sample_rate:(n + 5) * sample_rate]
+        
+        #If the last part of the audio is not exactly five seconds, lose it
+        if len(samples) != 5 * sample_rate:
+            break
+            
         """
         Block of code copied from another notebook to convert an audio window of five seconds into a mel spectrogram
         """
         y = samples.astype(np.float32)
 
-        melspec = librosa.feature.melspectrogram(y, sr=sr, **melspectrogram_parameters)
+        melspec = librosa.feature.melspectrogram(y, sr=sample_rate, **melspectrogram_parameters)
         melspec = librosa.power_to_db(melspec).astype(np.float32)
 
         image = mono_to_color(melspec)
@@ -96,41 +96,8 @@ def make_spectrograms(batch, sr=32000):
         #Append image to result. Image has shape (3, 224, 547). np.array(result) has shape (n, 3, 224, 547)
         result.append(image)
     
+  
+    del waveform
     #Return the array of spectrograms
     #Lose the first one since it only contains zeros
-    
-    # if np.array(result).shape != (32, 3, 224, 547):
-    #     raise ValueError("Dit gaat weer helemaal fout")
-    
     return np.array(result)
-
-
-if __name__ == "__main__":
-    model_path = "C:/Users/siets/OneDrive/Documenten/Sietse/Team Epoch/best_keras.pth.h5"
-    model = keras.models.load_model(model_path, custom_objects={
-    'recall_m': 0,
-    'precision_m': 0,
-    'f1_m': 0
-    })
-    optimizer = keras.optimizers.Adam(learning_rate=0.001)
-
-    model.compile(loss="binary_crossentropy", optimizer=optimizer,
-                  metrics=[keras.metrics.CategoricalAccuracy(), utils.f1_m, utils.precision_m, utils.recall_m])
-    
-    reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.2,
-                                                  patience=5, cooldown=2, min_lr=1e-9)
-
-
-    
-    
-    
-    gen = dataloader.DataGeneratorHDF5(base_dir + "test_traindataset.hdf5")
-    
-    for batch in gen:
-        spectrogram_batch = make_spectrograms(batch[0], sr=32000)
-        
-        print(type(batch[1]))
-        
-        model.fit((spectrogram_batch, batch[1]), callbacks=[reduce_lr],
-              epochs=1, workers=1)
-       # model.fit((spectrogram_batch, batch[1]), epochs=1)
