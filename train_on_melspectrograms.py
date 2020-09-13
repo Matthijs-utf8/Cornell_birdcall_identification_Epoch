@@ -101,3 +101,47 @@ def make_spectrograms(waveform, sample_rate=32000):
     #Return the array of spectrograms
     #Lose the first one since it only contains zeros
     return np.array(result)
+
+
+def read_audio(audio_path, sr=32000):
+    
+    #Load audio from .mp3 format
+    waveform, sample_rate = librosa.load(audio_path, sr=sr, mono=True)
+    
+    
+
+    #Specify resulting list of images
+    result = []
+    
+    #Loop over audio in 5 second windows
+    for n in range(0, int(np.ceil(len(waveform) / sr)), 5):
+        
+        #Get the waveform for a five second window
+        samples = waveform[n * sr:(n + 5) * sr]
+        
+        #If the last part of the audio is not exactly five seconds, lose it
+        if len(samples) != 5 * sr:
+            break
+            
+        """
+        Block of code copied from another notebook to convert an audio window of five seconds into a mel spectrogram
+        """
+        y = samples.astype(np.float32)
+
+        melspec = librosa.feature.melspectrogram(y, sr=sr, **melspectrogram_parameters)
+        melspec = librosa.power_to_db(melspec).astype(np.float32)
+
+        image = mono_to_color(melspec)
+        height, width, _ = image.shape
+        image = cv2.resize(image, (int(width * 224 / height), 224))
+        image = np.moveaxis(image, 2, 0)
+        image = (image / 255.0).astype(np.float32)
+
+        #Append image to result. Image has shape (3, 224, 547). np.array(result) has shape (n, 3, 224, 547)
+        result.append(image)
+    
+  
+    del waveform
+    #Return the array of spectrograms
+    #Lose the first one since it only contains zeros
+    return np.array(result)
