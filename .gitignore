@@ -7,3 +7,4 @@ spectrograms/
 baseline.tf/
 .idea/
 logs/
+datasets/
