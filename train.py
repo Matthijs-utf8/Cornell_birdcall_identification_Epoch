@@ -4,13 +4,18 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 import pickle
-import dataloader
+from dataloader import DataGeneratorHDF5
 import models
 import utils
 import warnings
+import data_reading
+import pandas as pd
 import time
 import tqdm
-warnings.filterwarnings('ignore')
+import train_on_melspectrograms as tom
+
+base_dir = data_reading.read_config()
+df_train = pd.read_csv(base_dir + "train.csv")
 
 if __name__ == "__main__":
     t = time.perf_counter()
@@ -18,7 +23,7 @@ if __name__ == "__main__":
     parser.add_argument("--seed", default=1234, type=int, help="Sets Gym, TF, and Numpy seeds")
     parser.add_argument("--lr", default=0.0001, type=float, help="Learning rate")
     parser.add_argument("--epochs", default=50, type=int, help="Number of epochs to train for")
-    parser.add_argument("--batch-size", default=32, type=int, help="Training batch size")
+    parser.add_argument("--batch-size", default=1, type=int, help="Training batch size")
     parser.add_argument("--workers", default=1, type=int, help="Number of dataloader workers, may work incorrectly")
     parser.add_argument("--feature-mode", default="spectrogram", type=str,
                         help="Possible values: 'spectrogram' or 'resnet' for preprocessed by resnet base")
@@ -51,61 +56,50 @@ if __name__ == "__main__":
         
 
 
-    # print("trainable count:", len(model.trainable_variables))
-    optimizer = keras.optimizers.Adam(
-        learning_rate=args.lr
-        # decay=1e-2,
-    )
+    # # print("trainable count:", len(model.trainable_variables))
+    # optimizer = keras.optimizers.Adam(
+    #     learning_rate=args.lr
+    #     # decay=1e-2,
+    # )
     
 
-    model.compile(loss="binary_crossentropy", optimizer=optimizer,
-                  metrics=[keras.metrics.CategoricalAccuracy(), utils.f1_m, utils.precision_m, utils.recall_m])
+    # model.compile(loss="binary_crossentropy", optimizer=optimizer,
+    #               metrics=[keras.metrics.CategoricalAccuracy(), utils.f1_m, utils.precision_m, utils.recall_m])
 
+    # model.summary()
+    
+    # for x in range(1000):
+    #     if type(model.layers[x]) == type(tf.keras.layers.MaxPooling2D(pool_size=(2, 2))):
+    #         print("Hoeezzeeee")
+    
+    # for layer in model.layers:
+    #     if type(layer) == type(tf.keras.layers.MaxPooling2D(pool_size=(2, 2))):
+    #         layer.data_format = 'channels_first'
     
     
-    import train_on_melspectrograms as tom
+    
+    spectrograms = tom.read_audio(df_train['full_path'][0])
+    spect = np.reshape(spectrograms[0], (1,) + spectrograms[0].shape)
+    print(spect.shape)
+    
+    print(model.predict(spect))
     
     
     
-    # Data
-    # print("Loading data generator")
-    # data_generator = dataloader.DataGeneratorHDF5("D:/Sietse/Datasets/test_traindataset.hdf5", batch_size=args.batch_size, dim=input_shape, shuffle=False, verbose=False)
-    # print("Data generator loaded")
     
-    with dataloader.DataGeneratorHDF5("D:/Sietse/Datasets/test_traindataset.hdf5") as ds:
-        data = []
+    
+    
+    with DataGeneratorHDF5("D:/Sietse/Datasets/test_frequency.hdf5") as ds:
+        X, y = ds[0]
         
-        for i in range(len(ds)):
-            X, y = ds[i]
-            data.append((tom.make_spectrograms(X), y))
-        
-        
-        
-
-        # print("Started making data")
-        # data = []
-        # for i in range(len(data_generator)):
-        #     data.append((tom.make_spectrograms(data_generator[i][0]), data_generator[i][1]))
-            
-            
-        # with open("D:/Sietse/Datasets/melspectrograms.pickle", 'wb') as f:
-        #     pickle.dump(data, f)
-        
-        # print("Data made")
-        
-        # print("Loading data")
-        # with open("D:/Sietse/Datasets/melspectrograms.pickle", 'rb') as f:
-        #     data = pickle.load(f)
-        # print("Data loaded")
-    
-        data_generator, data_generator_val = data[:-10], data[-10:]
-    
-        # X = np.concatenate(([data_generator[i][0] for i in range(10)]), axis=0)
-        # y = np.concatenate(([data_generator[i][1] for i in range(10)]), axis=0)
+        X = np.reshape(X[0], (1,) + X[0].shape)
+        y = np.reshape(y[0], (1,) + y[0].shape)
+        print(X.shape)
+        print(y.shape)
 
         
-        reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.2,
-                                                      patience=5, cooldown=2, min_lr=1e-9)
+        # reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.2,
+        #                                               patience=5, cooldown=2, min_lr=1e-9)
         #tensorboard_callback = utils.LRTensorBoard(log_dir=f"logs/{args.name}", settings_to_log=str(args))
         
     
@@ -114,7 +108,8 @@ if __name__ == "__main__":
         # callback = keras.callbacks.EarlyStopping(monitor='val_f1_m', patience=5)
         
         print("Started fitting, time elapsed so far:", time.perf_counter() - t, "seconds")
+
+        model.predict(X)
         
-        model.fit(X, y, batch_size=32,
-                  epochs=args.epochs, validation_data=data_generator_val)
+        model.fit(X, y, batch_size=1, epochs=args.epochs)
         model.save("models/" + args.name + ".h5")

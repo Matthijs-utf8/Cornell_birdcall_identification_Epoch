@@ -78,6 +78,6 @@ def savedModel(path="C:/Users/siets/OneDrive/Documenten/Sietse/Team Epoch/best_k
     })
     
     channels = 3
-    input_shape = (3,) + spectrogram_dim
+    input_shape = (channels,) + spectrogram_dim
     
     return model, input_shape, channels
