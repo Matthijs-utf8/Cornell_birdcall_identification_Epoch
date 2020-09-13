@@ -145,7 +145,7 @@ def preprocess(file_path, args):
             n_steps = random.randint(-5, 5)
             sound = sound_shuffling.frequency_shift(sound, sample_rate, n_steps)
         if args.shift_aug == "time_stretch":
-            n_steps = random.randint(-5, 5)
+            n_steps = random.randint(1, 5)
             sound = sound_shuffling.time_stretch(sound, n_steps)
 
     # Normalize
