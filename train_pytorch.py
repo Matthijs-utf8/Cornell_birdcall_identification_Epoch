@@ -40,10 +40,6 @@ if __name__ == "__main__":
 
     total_loss = 0.0
 
-    for i in range(10 ** 9):
-        pass
-    print("done looping")
-
     with dataloader.DataGeneratorHDF5Pytorch(args.data_path) as dataloader:
         for epoch in range(args.epochs):
             print("epoch =", epoch)
