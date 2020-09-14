@@ -27,7 +27,7 @@ if __name__ == "__main__":
     
     model, input_shape, channels = models.savedModel(model_path)
 
-    optimizer = keras.optimizers.Adam(learning_rate=args.lr)
+    optimizer = keras.optimizers.Adam(learning_rate=0.0001)
 
     model.compile(loss="binary_crossentropy", optimizer=optimizer,
                   metrics=[keras.metrics.CategoricalAccuracy(), utils.f1_m, utils.precision_m, utils.recall_m])
@@ -58,11 +58,12 @@ if __name__ == "__main__":
             # for x in range(3, 20):
             y = [y for _ in range(3)]
             try:
-                model.fit(X, y, epochs=1, batch_size=32)
+                model.fit(X, y, epochs=20, batch_size=32)
+
 
             except:
                 print("Fitten is niet gelukt")
 
             # model.fit(data, batch_size=args.batch_size, epochs=args.epochs)
-            # model.save("models/" + args.name + ".h5")
+        model.save("models/" + args.name + ".h5")
 
