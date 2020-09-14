@@ -19,26 +19,18 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    dataloader = dataloader.DataGeneratorHDF5Pytorch(args.data_path)
 
-    model: nn.Module = None
+    model = None
 
     if args.model_name == "resnet50-pretrained":
-        model_config = {
-            "base_model_name": "resnet50",
-            "pretrained": False,
-            "num_classes": 264
-        }
-
-        melspectrogram_parameters = {
-            "n_mels": 128,
-            "fmin": 20,
-            "fmax": 16000
-        }
-
         model = pytorch_models.ResNet()
 
         weights_path = args.model_weights
+
+        if weights_path != None:
+            model.load_state_dict(
+                torch.load(weights_path)["model_state_dict"]
+            )
 
     criterion = nn.BCELoss()
     optimizer = torch.optim.SGD(model.parameters(), args.lr)
@@ -48,24 +40,26 @@ if __name__ == "__main__":
 
     total_loss = 0.0
 
-    for epoch in range(args.epochs):
-        print("epoch =", epoch)
-        for data in tqdm(dataloader):
-            inputs, labels = data
+    with dataloader.DataGeneratorHDF5Pytorch(args.data_path) as dataloader:
+        for epoch in range(args.epochs):
+            print("epoch =", epoch)
+            for data in tqdm(dataloader):
+                print(time_since_print_loss)
+                inputs, labels = data
 
-            optimizer.zero_grad()
+                optimizer.zero_grad()
 
-            outputs = model(inputs)
-            
-            loss = criterion(outputs, labels)
-            loss.backward()
-            optimizer.step()
+                outputs = model(inputs)
+                
+                loss = criterion(outputs, labels)
+                loss.backward()
+                optimizer.step()
 
-            total_loss += loss.item()
-            time_since_print_loss += 1
+                total_loss += loss.item()
+                time_since_print_loss += 1
 
-            if time_since_print_loss % print_loss_frequency == print_loss_frequency - 1:
-                print("loss =", total_loss / print_loss_frequency)
-                total_loss = 0.0
+                if time_since_print_loss % print_loss_frequency == print_loss_frequency - 1:
+                    print("loss =", total_loss / print_loss_frequency)
+                    total_loss = 0.0
 
 print("done")

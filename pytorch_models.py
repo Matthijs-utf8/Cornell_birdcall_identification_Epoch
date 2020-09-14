@@ -1,5 +1,6 @@
 from torch import nn
 from torchvision import models
+import torch.nn.functional as F
 
 
 class ResNet(nn.Module):
@@ -23,10 +24,5 @@ class ResNet(nn.Module):
         batch_size = x.size(0)
         x = self.encoder(x).view(batch_size, -1)
         x = self.classifier(x)
-        multiclass_proba = F.softmax(x, dim=1)
         multilabel_proba = F.sigmoid(x)
-        return {
-            "logits": x,
-            "multiclass_proba": multiclass_proba,
-            "multilabel_proba": multilabel_proba
-        }
+        return multilabel_proba

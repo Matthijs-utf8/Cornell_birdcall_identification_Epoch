@@ -8,6 +8,7 @@ from tensorflow import keras
 import pandas as pd
 from tensorflow.keras.applications import ResNet50
 from tqdm import tqdm
+import torch
 
 import data_reading
 # from baseline_preprocess import preprocess, spectrogram_shape
@@ -259,7 +260,7 @@ class DataGeneratorHDF5Pytorch(Dataset):
         X = self.X[indexes]
         y = self.y[indexes]
 
-        return X, y
+        return torch.from_numpy(X), torch.from_numpy(y)
 
     def split(self, factor=0.1):
         """ Split into training and validation sets, probably very not thread safe """
