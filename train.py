@@ -63,6 +63,5 @@ if __name__ == "__main__":
 
             except:
                 print("Fitten is niet gelukt")
-            break
             # model.fit(data, batch_size=args.batch_size, epochs=args.epochs)
         model.save("/storage/teamepoch/model/" + args.name + ".h5")
