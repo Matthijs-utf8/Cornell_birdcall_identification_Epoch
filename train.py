@@ -43,18 +43,21 @@ if __name__ == "__main__":
         # save_best_callback = keras.callbacks.ModelCheckpoint(filepath="models/" + args.name + ".val_f1.{val_f1_m:.3f}.h5",
         #                                                      save_best_only=True, monitor='val_f1_m')
         # callback = keras.callbacks.EarlyStopping(monitor='val_f1_m', patience=5)
-        for X, y in ds:
+        # for X, y in ds:
+        #
+        #     print('X shape \n', X.shape)
+        #     # print('X array\n', X)
+        #     # y = np.stack([y for _ in range(3)])
+        #     y = [y,y,y]
+        #     # print('y shape \n', y.shape)
+        #     # print('y array \n', y)
+        #     for arr in y:
+        #         print('shape', arr.shape)
+        #     data = (X, y)
+        #     model.fit(data, batch_size=args.batch_size, epochs=args.epochs)
+        #     model.save("models/" + args.name + ".h5")
 
-            print('X shape \n', X.shape)
-            # print('X array\n', X)
-            # y = np.stack([y for _ in range(3)])
-            y = [y,y,y]
-            # print('y shape \n', y.shape)
-            # print('y array \n', y)
-            for arr in y:
-                print('shape', arr.shape)
-            data = (X, y)
-            val_data = data.split(0,1)
+        for i in ds:
 
-            model.fit(data, batch_size=args.batch_size, epochs=args.epochs, validation_data=val_data)
+            model.fit(i, batch_size=args.batch_size, epochs=args.epochs)
             model.save("models/" + args.name + ".h5")
