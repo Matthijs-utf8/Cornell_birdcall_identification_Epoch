@@ -54,5 +54,7 @@ if __name__ == "__main__":
             for arr in y:
                 print('shape', arr.shape)
             data = (X, y)
-            model.fit(data, batch_size=args.batch_size, epochs=args.epochs, validation_data=data)
+            val_data = data.split(0,1)
+
+            model.fit(data, batch_size=args.batch_size, epochs=args.epochs, validation_data=val_data)
             model.save("models/" + args.name + ".h5")
