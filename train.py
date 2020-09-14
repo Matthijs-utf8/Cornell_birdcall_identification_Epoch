@@ -51,5 +51,6 @@ if __name__ == "__main__":
             # y = np.array([y,y,y])
             print('y shape \n', y.shape)
             # print('y array \n', y)
-            model.fit(X, batch_size=args.batch_size, epochs=args.epochs)
+            data = (X, y)
+            model.fit(data, batch_size=args.batch_size, epochs=args.epochs)
             model.save("models/" + args.name + ".h5")
