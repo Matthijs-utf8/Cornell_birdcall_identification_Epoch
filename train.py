@@ -47,7 +47,7 @@ if __name__ == "__main__":
 
             print('X shape \n', X.shape)
             # print('X array\n', X)
-            y = np.stack([y for _ in range(3)])
+            # y = np.stack([y for _ in range(3)])
             # y = np.array([y,y,y])
             print('y shape \n', y.shape)
             # print('y array \n', y)
