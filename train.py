@@ -65,5 +65,5 @@ if __name__ == "__main__":
                 print("Fitten is niet gelukt")
 
             # model.fit(data, batch_size=args.batch_size, epochs=args.epochs)
-        model.save("args.name + ".h5")
+        model.save(args.name + ".h5")
 
