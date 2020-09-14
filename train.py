@@ -47,8 +47,8 @@ if __name__ == "__main__":
 
             print('X shape \n', X.shape)
             # print('X array\n', X)
-            # y = np.stack([y for _ in range(3)]).transpose(1,2,0)
-            y = np.array([y,y,y])
+            y = np.stack([y for _ in range(3)])
+            # y = np.array([y,y,y])
             print('y shape \n', y.shape)
             print('y array \n', y)
             model.fit(X, y, batch_size=args.batch_size, epochs=args.epochs)
