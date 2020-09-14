@@ -25,9 +25,10 @@ import sound_shuffling
 import preprocessing
 
 from birdcodes import bird_code
+from train_on_melspectrograms import make_spectrograms
 
 # variables
-universal_sample_rate = 22000
+universal_sample_rate = 32000
 window_size = 440
 base_dir = data_reading.read_config()
 df_train = pd.read_csv(base_dir + "train.csv")
@@ -151,11 +152,13 @@ def preprocess(file_path, args):
     sound = preprocessing.normalize(sound)
 
     # Cut sound up in frames of 5 seconds
-    window_width = universal_sample_rate * 5
-    step_size = window_width  # TODO: paramererize stepsize
-    nr_of_frames, frames = get_frames(sound, window_width, step_size)
-
-    return np.array(frames)
+    # window_width = universal_sample_rate * 5
+    # step_size = window_width  # TODO: paramererize stepsize
+    # nr_of_frames, frames = get_frames(sound, window_width, step_size)
+    
+    frames = make_spectrograms(sound, sample_rate=32000)
+    
+    return frames
 
 """ A function that creates data and labels ready for the hdf5 class to use. """
 def create_data(path_to_birdsound_dir, file_name, args):
@@ -256,7 +259,6 @@ if __name__ == "__main__":
                     # Create data per file
                     data, labels = create_data(path_to_birdsound_dir, file_name, args)
                     if len(data) == 0:
-                        print("Skipping short sound file: ", file_name)
                         continue
                     dataset.append(data, labels)
 

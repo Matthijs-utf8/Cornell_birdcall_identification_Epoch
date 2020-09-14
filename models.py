@@ -1,10 +1,10 @@
 from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.python.keras.applications.resnet import ResNet50
-
+import tensorflow as tf
 import birdcodes
 
-spectrogram_dim = (250, 257)
+spectrogram_dim = (224, 547)
 
 
 def CNN():
@@ -61,11 +61,24 @@ def ResNet(weights="imagenet"):
     :return:
     """
     channels = 3
-    input_shape = spectrogram_dim + (3,)
+    input_shape = (3,) + spectrogram_dim
     model = keras.models.Sequential([
         ResNet50(input_shape=input_shape, include_top=False, weights=weights),
         layers.GlobalMaxPool2D(input_shape=(8, 9, 2048)),
         layers.Dense(1024, activation="relu"),
         layers.Dense(len(birdcodes.bird_code), activation="sigmoid"),
     ])
+    return model, input_shape, channels
+
+def savedModel(path):
+    with tf.device('/cpu:0'):
+        model = keras.models.load_model(path, custom_objects={
+        'recall_m': 0,
+        'precision_m': 0,
+        'f1_m': 0
+        })
+    
+    channels = 3
+    input_shape = (channels,) + spectrogram_dim
+    
     return model, input_shape, channels
