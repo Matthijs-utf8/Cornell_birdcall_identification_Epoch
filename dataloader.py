@@ -6,7 +6,6 @@ import h5py
 import numpy as np
 from tensorflow import keras
 import pandas as pd
-from tensorflow.python.keras.applications.resnet import ResNet50
 from tqdm import tqdm
 
 import data_reading
