@@ -50,6 +50,6 @@ if __name__ == "__main__":
             y = np.stack([y for _ in range(3)])
             # y = np.array([y,y,y])
             print('y shape \n', y.shape)
-            print('y array \n', y)
-            model.fit(X, y, batch_size=args.batch_size, epochs=args.epochs)
+            # print('y array \n', y)
+            model.fit(X, batch_size=args.batch_size, epochs=args.epochs)
             model.save("models/" + args.name + ".h5")
