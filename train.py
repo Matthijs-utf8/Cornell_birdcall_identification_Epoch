@@ -46,8 +46,9 @@ if __name__ == "__main__":
         for X, y in ds:
 
             print('X shape \n', X.shape)
-            print('X array\n', X)
+            # print('X array\n', X)
+            y = y[;,;,3]
             print('y shape \n', y.shape)
-            print('y array \n', y)
+            # print('y array \n', y)
             model.fit(X, y, batch_size=args.batch_size, epochs=args.epochs)
             model.save("models/" + args.name + ".h5")
