@@ -44,6 +44,8 @@ if __name__ == "__main__":
         #                                                      save_best_only=True, monitor='val_f1_m')
         # callback = keras.callbacks.EarlyStopping(monitor='val_f1_m', patience=5)
         for X, y in ds:
-            
+
+            print('X shape \n', X.shape)
+            print('y shape \n', y.shape)
             model.fit(X, y, batch_size=args.batch_size, epochs=args.epochs)
             model.save("models/" + args.name + ".h5")
