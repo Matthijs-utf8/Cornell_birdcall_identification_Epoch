@@ -58,12 +58,12 @@ if __name__ == "__main__":
             # for x in range(3, 20):
             y = [y for _ in range(3)]
             try:
-                model.fit(X, y, epochs=1, batch_size=32)
+                model.fit(X, y, epochs=20, batch_size=32)
 
 
             except:
                 print("Fitten is niet gelukt")
 
             # model.fit(data, batch_size=args.batch_size, epochs=args.epochs)
-        model.save("models/" + args.name + ".h5")
+        model.save("args.name + ".h5")
 
