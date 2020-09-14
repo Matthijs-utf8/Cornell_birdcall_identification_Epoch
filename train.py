@@ -45,7 +45,7 @@ if __name__ == "__main__":
         # callback = keras.callbacks.EarlyStopping(monitor='val_f1_m', patience=5)
         for X, y in ds:
 
-            print('X shape \n', X.shape)
+            # print('X shape \n', X.shape)
             # print('X array\n', X)
             # y = np.stack([y for _ in range(3)])
             # y = [y,y,y]
@@ -58,7 +58,7 @@ if __name__ == "__main__":
             # for x in range(3, 20):
             y = [y for _ in range(3)]
             try:
-                model.fit(X, y, epochs=20, batch_size=32)
+                model.fit(X, y, epochs=1, batch_size=32)
 
 
             except:
