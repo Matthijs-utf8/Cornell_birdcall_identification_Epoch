@@ -47,6 +47,11 @@ if __name__ == "__main__":
                 # print("start new data")
             # for data in tqdm(dataloader):
                 inputs, labels = data
+
+                if 0 in inputs.size() or 0 in labels.size():
+                    print(labels)
+                    continue
+
                 # print("inputs size =", inputs.size())
                 # print("labels size =", labels.size())
 
@@ -56,6 +61,9 @@ if __name__ == "__main__":
 
                 optimizer.zero_grad()
                 # print("zero'ed optimizer gradients")
+
+                # print("inputs =", inputs)
+                # print("labels =", labels)
 
                 outputs = model(inputs)
                 # print("calculated outputs")
